@@ -10,4 +10,6 @@ import java.lang.annotation.Target;
 @Retention(RUNTIME)
 public @interface MojoExecution {
   int order();
+
+  boolean enabled() default true;
 }

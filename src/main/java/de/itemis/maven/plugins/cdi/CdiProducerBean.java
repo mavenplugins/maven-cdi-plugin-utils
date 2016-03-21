@@ -36,6 +36,7 @@ public class CdiProducerBean<T> implements Bean<T> {
     this.qualifiers = qualifiers;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public T create(CreationalContext<T> creationalContext) {
     Object[] params = new Object[0];
