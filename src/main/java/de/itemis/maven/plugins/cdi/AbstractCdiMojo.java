@@ -101,7 +101,7 @@ import de.itemis.maven.plugins.cdi.beans.CdiProducerBean;
  *
  * @author <a href="mailto:stanley.hillner@itemis.de">Stanley Hillner</a>
  */
-public class AbstractCDIMojo extends AbstractMojo implements Extension {
+public class AbstractCdiMojo extends AbstractMojo implements Extension {
   private static final String FILE_EXTENSION_CLASS = "class";
 
   @Component
