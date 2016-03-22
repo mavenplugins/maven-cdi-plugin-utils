@@ -1,4 +1,4 @@
-package de.itemis.maven.plugins.cdi.annotations;
+package com.itemis.maven.plugins.cdi.annotations;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;

@@ -1,4 +1,4 @@
-package de.itemis.maven.plugins.cdi.annotations;
+package com.itemis.maven.plugins.cdi.annotations;
 
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -6,7 +6,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import de.itemis.maven.plugins.cdi.InjectableCdiMojo;
+import com.itemis.maven.plugins.cdi.InjectableCdiMojo;
 
 /**
  * A class-level annotation used to specify some metadata for the executions of the {@link InjectableCdiMojo injected

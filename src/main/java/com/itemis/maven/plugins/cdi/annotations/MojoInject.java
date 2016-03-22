@@ -1,4 +1,4 @@
-package de.itemis.maven.plugins.cdi.annotations;
+package com.itemis.maven.plugins.cdi.annotations;
 
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;

@@ -1,4 +1,4 @@
-package de.itemis.maven.plugins.cdi;
+package com.itemis.maven.plugins.cdi;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,12 +50,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
-
-import de.itemis.maven.plugins.cdi.annotations.MojoExecution;
-import de.itemis.maven.plugins.cdi.annotations.MojoProduces;
-import de.itemis.maven.plugins.cdi.annotations.RollbackOnError;
-import de.itemis.maven.plugins.cdi.beans.CdiBeanWrapper;
-import de.itemis.maven.plugins.cdi.beans.CdiProducerBean;
+import com.itemis.maven.plugins.cdi.annotations.MojoExecution;
+import com.itemis.maven.plugins.cdi.annotations.MojoProduces;
+import com.itemis.maven.plugins.cdi.annotations.RollbackOnError;
+import com.itemis.maven.plugins.cdi.beans.CdiBeanWrapper;
+import com.itemis.maven.plugins.cdi.beans.CdiProducerBean;
 
 /**
  * An abstract Mojo that enabled CDI-based dependency injection for the current maven plugin.<br>

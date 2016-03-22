@@ -1,9 +1,9 @@
-package de.itemis.maven.plugins.cdi;
+package com.itemis.maven.plugins.cdi;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 
-import de.itemis.maven.plugins.cdi.annotations.MojoExecution;
+import com.itemis.maven.plugins.cdi.annotations.MojoExecution;
 
 /**
  * Classes of this type will automatically be executed as the primary plugin code once the CDI container is set up.<br>
