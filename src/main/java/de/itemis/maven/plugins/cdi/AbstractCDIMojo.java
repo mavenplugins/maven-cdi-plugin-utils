@@ -7,6 +7,7 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Set;
@@ -25,6 +26,7 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.descriptor.MojoDescriptor;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -51,9 +53,51 @@ import com.google.common.io.Files;
 
 import de.itemis.maven.plugins.cdi.annotations.MojoExecution;
 import de.itemis.maven.plugins.cdi.annotations.MojoProduces;
+import de.itemis.maven.plugins.cdi.annotations.RollbackOnError;
+import de.itemis.maven.plugins.cdi.beans.CdiBeanWrapper;
+import de.itemis.maven.plugins.cdi.beans.CdiProducerBean;
 
 /**
- * An abstract Mojo that enabled CDI-based dependency injection for the current maven plugin.
+ * An abstract Mojo that enabled CDI-based dependency injection for the current maven plugin.<br>
+ * This Mojo enables you to decouple different parts of your plugin implementation and also dynamically inject
+ * additional funktionality into your plugin. It provides the possibility to use nearly the full CDI stack as there are
+ * injection, producers, interceptors, decorators, alternatives, ...<br>
+ * <br>
+ *
+ * <b>ATTENTION:</b> Please do not use annotations such as {@code @javax.inject.Inject} or
+ * {@code @javax.enterprise.inject.Produces} directly in your Mojo! There are special replacements for that in the
+ * annotations package of this library. Using CDI annotations directly in the Mojo would trigger Maven's own CDI
+ * adaption!<br>
+ * <br>
+ *
+ * Using this abstract Mojo as the parent of your own Mojo, you can simply see the Mojo class as a data dispatcher
+ * container whose single responsibility is to provide paramters for your business logic implementations. Simply get the
+ * Mojo parameters injected and use the producer annotation to provide the bean to your implementations:
+ *
+ * <pre>
+ * &#64;Parameter
+ * &#64;MojoProduces
+ * &#64;Named("sourcePath")
+ * private String sourcePath;
+ *
+ * &#64;Parameter(defaultValue = "${reactorProjects}", readonly = true, required = true)
+ * &#64;MojoProduces
+ * &#64;Named("reactorProjects")
+ * private List<MavenProject> reactorProjects;
+ * </pre>
+ *
+ * Or use a producer method for the logger:
+ *
+ * <pre>
+ * &#64;MojoProduces
+ * public MavenLogWrapper createLogWrapper() {
+ *   MavenLogWrapper log = new MavenLogWrapper(getLog());
+ *   if (this.enableLogTimestamps) {
+ *     log.enableLogTimestamps();
+ *   }
+ *   return log;
+ * }
+ * </pre>
  *
  * @author <a href="mailto:stanley.hillner@itemis.de">Stanley Hillner</a>
  */
@@ -74,16 +118,20 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     Weld weld = new Weld();
     weld.addExtension(this);
     addPluginDependenciesToWeld(weld);
-    WeldContainer weldContainer = weld.initialize();
-
-    Multimap<Integer, InjectableCdiMojo> mojos = getMojos(weldContainer);
-    executeMojos(mojos);
-
-    weldContainer.shutdown();
+    WeldContainer weldContainer = null;
+    try {
+      weldContainer = weld.initialize();
+      Multimap<Integer, InjectableCdiMojo> mojos = getMojos(weldContainer);
+      executeMojos(mojos);
+    } finally {
+      if (weldContainer != null && weldContainer.isRunning()) {
+        weldContainer.shutdown();
+      }
+    }
   }
 
   private void addPluginDependenciesToWeld(Weld weld) throws MojoExecutionException {
-    PluginDescriptor pluginDescriptor = (PluginDescriptor) getPluginContext().get("pluginDescriptor");
+    PluginDescriptor pluginDescriptor = getPluginDescriptor();
     List<Dependency> dependencies = pluginDescriptor.getPlugin().getDependencies();
     for (Dependency d : dependencies) {
       Optional<File> f = resolvePluginDependency(d);
@@ -170,32 +218,129 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     Collections.sort(keys);
     for (Integer key : keys) {
       for (InjectableCdiMojo mojo : mojos.get(key)) {
-        mojo.execute();
+        try {
+          mojo.execute();
+        } catch (Throwable t) {
+          // get rollback methods and sort alphabetically
+          List<Method> rollbackMethods = getRollbackMethods(mojo, t.getClass());
+          rollbackMethods.sort(new Comparator<Method>() {
+            @Override
+            public int compare(Method m1, Method m2) {
+              return m1.getName().compareTo(m2.getName());
+            }
+          });
+
+          // call rollback methods
+          for (Method rollbackMethod : rollbackMethods) {
+            rollbackMethod.setAccessible(true);
+            try {
+              if (rollbackMethod.getParameters().length == 1) {
+                rollbackMethod.invoke(mojo, t);
+              } else {
+                rollbackMethod.invoke(mojo);
+              }
+            } catch (ReflectiveOperationException e) {
+              getLog().error("Error calling rollback method of Mojo.", e);
+            }
+          }
+
+          // throw original exception after rollback!
+          if (t instanceof MojoExecutionException) {
+            throw (MojoExecutionException) t;
+          } else if (t instanceof MojoFailureException) {
+            throw (MojoFailureException) t;
+          } else if (t instanceof RuntimeException) {
+            throw (RuntimeException) t;
+          } else {
+            throw new RuntimeException(t);
+          }
+        }
       }
     }
   }
 
+  private <T extends Throwable> List<Method> getRollbackMethods(InjectableCdiMojo mojo, Class<T> causeType) {
+    List<Method> rollbackMethods = Lists.newArrayList();
+    for (Method m : mojo.getClass().getDeclaredMethods()) {
+      RollbackOnError rollbackAnnotation = m.getAnnotation(RollbackOnError.class);
+      if (rollbackAnnotation != null) {
+        boolean considerMethod = false;
+
+        // consider method for inclusion if no error types are declared or if one of the declared error types is a
+        // supertype of the caught exception
+        Class<? extends Throwable>[] errorTypes = rollbackAnnotation.value();
+        if (errorTypes.length == 0) {
+          considerMethod = true;
+        } else {
+          for (Class<? extends Throwable> errorType : errorTypes) {
+            if (errorType.isAssignableFrom(causeType)) {
+              considerMethod = true;
+              break;
+            }
+          }
+        }
+
+        // now check also the method parameters (0 or one exception type)
+        if (considerMethod) {
+          Class<?>[] parameterTypes = m.getParameterTypes();
+          switch (parameterTypes.length) {
+            case 0:
+              rollbackMethods.add(m);
+              break;
+            case 1:
+              if (parameterTypes[0].isAssignableFrom(causeType)) {
+                rollbackMethods.add(m);
+              }
+              break;
+            default:
+              getLog().warn(
+                  "Found rollback method with more than one parameters! Only zero or one parameter of type <T extends Throwable> is allowed!");
+              break;
+          }
+        }
+      }
+    }
+
+    return rollbackMethods;
+  }
+
   private Multimap<Integer, InjectableCdiMojo> getMojos(WeldContainer weldContainer) {
     Multimap<Integer, InjectableCdiMojo> mojos = ArrayListMultimap.create();
+    String goalName = getGoalName();
+
     Set<Bean<?>> mojoBeans = weldContainer.getBeanManager().getBeans(InjectableCdiMojo.class, AnyLiteral.INSTANCE);
+    // searches all beans for beans that have the matching goal name, ...
     for (Bean<?> b : mojoBeans) {
       @SuppressWarnings("unchecked")
       Bean<InjectableCdiMojo> bean = (Bean<InjectableCdiMojo>) b;
       CreationalContext<InjectableCdiMojo> creationalContext = weldContainer.getBeanManager()
           .createCreationalContext(bean);
       InjectableCdiMojo mojo = bean.create(creationalContext);
+
       int order = 0;
-      boolean enabled = true;
+      boolean enabled = false;
+      String mojoName = null;
       MojoExecution execution = mojo.getClass().getAnnotation(MojoExecution.class);
       if (execution != null) {
         order = execution.order();
         enabled = execution.enabled();
+        mojoName = execution.name();
       }
-      if (enabled) {
+      if (enabled && Objects.equal(goalName, mojoName)) {
         mojos.put(order, mojo);
       }
     }
     return mojos;
+  }
+
+  private String getGoalName() {
+    PluginDescriptor pluginDescriptor = getPluginDescriptor();
+    for (MojoDescriptor mojoDescriptor : pluginDescriptor.getMojos()) {
+      if (mojoDescriptor.getImplementation().equals(getClass().getName())) {
+        return mojoDescriptor.getGoal();
+      }
+    }
+    return null;
   }
 
   @SuppressWarnings("unused")
@@ -218,6 +363,7 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   // will be called automatically by the CDI container once the bean discovery has finished
   private void processMojoCdiProducerMethods(@Observes AfterBeanDiscovery event, BeanManager beanManager)
       throws MojoExecutionException {
+    // no method parameter injection possible at the moment since the container is not yet initialized at this point!
     for (Method m : getClass().getDeclaredMethods()) {
       if (m.getReturnType() != Void.class && m.isAnnotationPresent(MojoProduces.class)) {
         try {
@@ -241,5 +387,9 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
       qualifiers.add(DefaultLiteral.INSTANCE);
     }
     return qualifiers;
+  }
+
+  private PluginDescriptor getPluginDescriptor() {
+    return (PluginDescriptor) getPluginContext().get("pluginDescriptor");
   }
 }
