@@ -11,6 +11,7 @@ import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -215,34 +216,15 @@ public class AbstractCdiMojo extends AbstractMojo implements Extension {
       throws MojoExecutionException, MojoFailureException {
     List<Integer> keys = Lists.newArrayList(mojos.keySet());
     Collections.sort(keys);
+    Stack<InjectableCdiMojo> executedMojos = new Stack<InjectableCdiMojo>();
+
     for (Integer key : keys) {
       for (InjectableCdiMojo mojo : mojos.get(key)) {
         try {
+          executedMojos.push(mojo);
           mojo.execute();
         } catch (Throwable t) {
-          // get rollback methods and sort alphabetically
-          List<Method> rollbackMethods = getRollbackMethods(mojo, t.getClass());
-          rollbackMethods.sort(new Comparator<Method>() {
-            @Override
-            public int compare(Method m1, Method m2) {
-              return m1.getName().compareTo(m2.getName());
-            }
-          });
-
-          // call rollback methods
-          for (Method rollbackMethod : rollbackMethods) {
-            rollbackMethod.setAccessible(true);
-            try {
-              if (rollbackMethod.getParameters().length == 1) {
-                rollbackMethod.invoke(mojo, t);
-              } else {
-                rollbackMethod.invoke(mojo);
-              }
-            } catch (ReflectiveOperationException e) {
-              getLog().error("Error calling rollback method of Mojo.", e);
-            }
-          }
-
+          rollbackMojos(executedMojos, t);
           // throw original exception after rollback!
           if (t instanceof MojoExecutionException) {
             throw (MojoExecutionException) t;
@@ -254,6 +236,37 @@ public class AbstractCdiMojo extends AbstractMojo implements Extension {
             throw new RuntimeException(t);
           }
         }
+      }
+    }
+  }
+
+  private void rollbackMojos(Stack<InjectableCdiMojo> executedMojos, Throwable t) {
+    while (!executedMojos.empty()) {
+      rollbackMojo(executedMojos.pop(), t);
+    }
+  }
+
+  private void rollbackMojo(InjectableCdiMojo mojo, Throwable t) {
+    // get rollback methods and sort alphabetically
+    List<Method> rollbackMethods = getRollbackMethods(mojo, t.getClass());
+    rollbackMethods.sort(new Comparator<Method>() {
+      @Override
+      public int compare(Method m1, Method m2) {
+        return m1.getName().compareTo(m2.getName());
+      }
+    });
+
+    // call rollback methods
+    for (Method rollbackMethod : rollbackMethods) {
+      rollbackMethod.setAccessible(true);
+      try {
+        if (rollbackMethod.getParameters().length == 1) {
+          rollbackMethod.invoke(mojo, t);
+        } else {
+          rollbackMethod.invoke(mojo);
+        }
+      } catch (ReflectiveOperationException e) {
+        getLog().error("Error calling rollback method of Mojo.", e);
       }
     }
   }
