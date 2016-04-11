@@ -3,17 +3,33 @@ package com.itemis.maven.plugins.cdi;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 
-import com.itemis.maven.plugins.cdi.annotations.MojoExecution;
+import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
 
 /**
  * Classes of this type will automatically be executed as the primary plugin code once the CDI container is set up.<br>
- * You can influence the execution order or other parameters using the {@link MojoExecution} annotation.<br>
+ * You can influence the execution order or other parameters using the {@link ProcessingStep} annotation.<br>
  * <br>
  *
  * <b>Example Mojo:</b>
  *
  * <pre>
- * &#64;MojoExecution(order = 0)
+ * &#64;ProcessingStep(&#64;Goal(name = "run", stepNumber = "1"))
+ * public class TestCdiMojo implements InjectableCdiMojo {
+ *   &#64;Inject
+ *   &#64;Named("sourcePath")
+ *   private String sourcePath;
+ *
+ *   public void execute() throws MojoExecutionException, MojoFailureException {
+ *     System.out.println(this.sourcePath);
+ *   }
+ * }
+ * </pre>
+ *
+ * You can also use multiple mappings for one processing step:
+ * 
+ * <pre>
+ * &#64;ProcessingStep({ &#64;Goal(name = "run", stepNumber = "1"), &#64;Goal(name = "run", stepNumber = "7"),
+ *     &#64;Goal(name = "dryRun", stepNumber = "3") })
  * public class TestCdiMojo implements InjectableCdiMojo {
  *   &#64;Inject
  *   &#64;Named("sourcePath")
@@ -28,7 +44,7 @@ import com.itemis.maven.plugins.cdi.annotations.MojoExecution;
  * @author <a href="mailto:stanley.hillner@itemis.de">Stanley Hillner</a>
  * @since 1.0.0
  */
-public interface InjectableCdiMojo {
+public interface CDIMojoProcessingStep {
 
   /**
    * The primary execution method which will be called as soon as this Mojo is ready for execution.<br>

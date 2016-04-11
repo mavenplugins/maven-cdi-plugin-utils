@@ -6,10 +6,10 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import com.itemis.maven.plugins.cdi.InjectableCdiMojo;
+import com.itemis.maven.plugins.cdi.CDIMojoProcessingStep;
 
 /**
- * This annotation can be put on any method of an {@link InjectableCdiMojo} with the following purpose and restrictions:
+ * This annotation can be put on any method of an {@link CDIMojoProcessingStep} with the following purpose and restrictions:
  * <br>
  * <br>
  * <b>Purpose:</b> As soon as the execution of the Mojo instance has failed throwing an exception, the rollback

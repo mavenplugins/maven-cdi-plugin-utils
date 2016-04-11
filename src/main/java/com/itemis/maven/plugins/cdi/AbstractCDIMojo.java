@@ -51,8 +51,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
-import com.itemis.maven.plugins.cdi.annotations.MojoExecution;
+import com.itemis.maven.plugins.cdi.annotations.Goal;
 import com.itemis.maven.plugins.cdi.annotations.MojoProduces;
+import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
 import com.itemis.maven.plugins.cdi.annotations.RollbackOnError;
 import com.itemis.maven.plugins.cdi.beans.CdiBeanWrapper;
 import com.itemis.maven.plugins.cdi.beans.CdiProducerBean;
@@ -101,7 +102,7 @@ import com.itemis.maven.plugins.cdi.beans.CdiProducerBean;
  *
  * @author <a href="mailto:stanley.hillner@itemis.de">Stanley Hillner</a>
  */
-public class AbstractCdiMojo extends AbstractMojo implements Extension {
+public class AbstractCDIMojo extends AbstractMojo implements Extension {
   private static final String FILE_EXTENSION_CLASS = "class";
 
   @Component
@@ -121,7 +122,7 @@ public class AbstractCdiMojo extends AbstractMojo implements Extension {
     WeldContainer weldContainer = null;
     try {
       weldContainer = weld.initialize();
-      Multimap<Integer, InjectableCdiMojo> mojos = getMojos(weldContainer);
+      Multimap<Integer, CDIMojoProcessingStep> mojos = getMojos(weldContainer);
       executeMojos(mojos);
     } finally {
       if (weldContainer != null && weldContainer.isRunning()) {
@@ -212,14 +213,14 @@ public class AbstractCdiMojo extends AbstractMojo implements Extension {
     return classNames;
   }
 
-  private void executeMojos(Multimap<Integer, InjectableCdiMojo> mojos)
+  private void executeMojos(Multimap<Integer, CDIMojoProcessingStep> mojos)
       throws MojoExecutionException, MojoFailureException {
     List<Integer> keys = Lists.newArrayList(mojos.keySet());
     Collections.sort(keys);
-    Stack<InjectableCdiMojo> executedMojos = new Stack<InjectableCdiMojo>();
+    Stack<CDIMojoProcessingStep> executedMojos = new Stack<CDIMojoProcessingStep>();
 
     for (Integer key : keys) {
-      for (InjectableCdiMojo mojo : mojos.get(key)) {
+      for (CDIMojoProcessingStep mojo : mojos.get(key)) {
         try {
           executedMojos.push(mojo);
           mojo.execute();
@@ -240,13 +241,13 @@ public class AbstractCdiMojo extends AbstractMojo implements Extension {
     }
   }
 
-  private void rollbackMojos(Stack<InjectableCdiMojo> executedMojos, Throwable t) {
+  private void rollbackMojos(Stack<CDIMojoProcessingStep> executedMojos, Throwable t) {
     while (!executedMojos.empty()) {
       rollbackMojo(executedMojos.pop(), t);
     }
   }
 
-  private void rollbackMojo(InjectableCdiMojo mojo, Throwable t) {
+  private void rollbackMojo(CDIMojoProcessingStep mojo, Throwable t) {
     // get rollback methods and sort alphabetically
     List<Method> rollbackMethods = getRollbackMethods(mojo, t.getClass());
     rollbackMethods.sort(new Comparator<Method>() {
@@ -271,7 +272,7 @@ public class AbstractCdiMojo extends AbstractMojo implements Extension {
     }
   }
 
-  private <T extends Throwable> List<Method> getRollbackMethods(InjectableCdiMojo mojo, Class<T> causeType) {
+  private <T extends Throwable> List<Method> getRollbackMethods(CDIMojoProcessingStep mojo, Class<T> causeType) {
     List<Method> rollbackMethods = Lists.newArrayList();
     for (Method m : mojo.getClass().getDeclaredMethods()) {
       RollbackOnError rollbackAnnotation = m.getAnnotation(RollbackOnError.class);
@@ -316,30 +317,26 @@ public class AbstractCdiMojo extends AbstractMojo implements Extension {
     return rollbackMethods;
   }
 
-  private Multimap<Integer, InjectableCdiMojo> getMojos(WeldContainer weldContainer) {
-    Multimap<Integer, InjectableCdiMojo> mojos = ArrayListMultimap.create();
+  private Multimap<Integer, CDIMojoProcessingStep> getMojos(WeldContainer weldContainer) {
+    Multimap<Integer, CDIMojoProcessingStep> mojos = ArrayListMultimap.create();
     String goalName = getGoalName();
 
-    Set<Bean<?>> mojoBeans = weldContainer.getBeanManager().getBeans(InjectableCdiMojo.class, AnyLiteral.INSTANCE);
+    Set<Bean<?>> mojoBeans = weldContainer.getBeanManager().getBeans(CDIMojoProcessingStep.class, AnyLiteral.INSTANCE);
     // searches all beans for beans that have the matching goal name, ...
     for (Bean<?> b : mojoBeans) {
       @SuppressWarnings("unchecked")
-      Bean<InjectableCdiMojo> bean = (Bean<InjectableCdiMojo>) b;
-      CreationalContext<InjectableCdiMojo> creationalContext = weldContainer.getBeanManager()
+      Bean<CDIMojoProcessingStep> bean = (Bean<CDIMojoProcessingStep>) b;
+      CreationalContext<CDIMojoProcessingStep> creationalContext = weldContainer.getBeanManager()
           .createCreationalContext(bean);
-      InjectableCdiMojo mojo = bean.create(creationalContext);
+      CDIMojoProcessingStep mojo = bean.create(creationalContext);
 
-      int order = 0;
-      boolean enabled = false;
-      String mojoName = null;
-      MojoExecution execution = mojo.getClass().getAnnotation(MojoExecution.class);
-      if (execution != null) {
-        order = execution.order();
-        enabled = execution.enabled();
-        mojoName = execution.name();
-      }
-      if (enabled && Objects.equal(goalName, mojoName)) {
-        mojos.put(order, mojo);
+      ProcessingStep cdiMojo = mojo.getClass().getAnnotation(ProcessingStep.class);
+      if (cdiMojo != null) {
+        for (Goal goalMapping : cdiMojo.value()) {
+          if (goalMapping.enabled() && Objects.equal(goalName, goalMapping.name())) {
+            mojos.put(goalMapping.stepNumber(), mojo);
+          }
+        }
       }
     }
     return mojos;
