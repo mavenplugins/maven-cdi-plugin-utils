@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.itemis</groupId>
     <artifactId>org-parent</artifactId>
-    <version>1-SNAPSHOT</version>
+    <version>1</version>
   </parent>
 
   <groupId>com.itemis.maven.plugins</groupId>
@@ -28,7 +28,6 @@
 
   <scm>
     <connection>scm:git:https://github.com/shillner/maven-cdi-plugin-utils.git</connection>
-    <developerConnection>scm:git:git@github.com:shillner/maven-cdi-plugin-utils.git</developerConnection>
     <url>https://github.com/shillner/maven-cdi-plugin-utils</url>
   </scm>
 
