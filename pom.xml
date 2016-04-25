@@ -9,7 +9,7 @@
 
   <groupId>com.itemis.maven.plugins</groupId>
   <artifactId>cdi-plugin-utils</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1-SNAPSHOT</version>
 
   <name>CDI Plugin Utilities</name>
   <description>Provides an abstract Mojo that enables CDI-based dependency injection for Maven Plugins.</description>
@@ -29,7 +29,7 @@
   <scm>
     <connection>scm:git:https://github.com/shillner/maven-cdi-plugin-utils.git</connection>
     <url>https://github.com/shillner/maven-cdi-plugin-utils</url>
-    <tag>1.0.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <issueManagement>
