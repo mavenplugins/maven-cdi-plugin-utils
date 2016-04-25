@@ -84,7 +84,7 @@ import com.itemis.maven.plugins.cdi.beans.CdiProducerBean;
  * &#64;Parameter(defaultValue = "${reactorProjects}", readonly = true, required = true)
  * &#64;MojoProduces
  * &#64;Named("reactorProjects")
- * private List<MavenProject> reactorProjects;
+ * private List&lt;MavenProject&gt; reactorProjects;
  * </pre>
  *
  * Or use a producer method for the logger:
@@ -101,6 +101,7 @@ import com.itemis.maven.plugins.cdi.beans.CdiProducerBean;
  * </pre>
  *
  * @author <a href="mailto:stanley.hillner@itemis.de">Stanley Hillner</a>
+ * @since 1.0.0
  */
 public class AbstractCDIMojo extends AbstractMojo implements Extension {
   private static final String FILE_EXTENSION_CLASS = "class";
