@@ -9,7 +9,8 @@ import java.lang.annotation.Target;
 import com.itemis.maven.plugins.cdi.CDIMojoProcessingStep;
 
 /**
- * A class-level annotation used to specify some metadata for the executions of the {@link CDIMojoProcessingStep injected
+ * A class-level annotation used to specify some metadata for the executions of the {@link CDIMojoProcessingStep
+ * injected
  * CDI Mojo instances}.<br>
  * You can provide a mapping of goal name to execution order (step where this mojo will be executed). Multiple mappings
  * are allowed, even for the same goal name!
@@ -20,5 +21,11 @@ import com.itemis.maven.plugins.cdi.CDIMojoProcessingStep;
 @Target({ TYPE })
 @Retention(RUNTIME)
 public @interface ProcessingStep {
-  Goal[] value();
+  /**
+   * @return the id of the processing step which is used for the orchestration of the processing workflow.
+   * @since 2.0.0
+   */
+  String id();
+
+  String description() default "";
 }

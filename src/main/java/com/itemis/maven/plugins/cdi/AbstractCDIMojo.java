@@ -1,17 +1,26 @@
 package com.itemis.maven.plugins.cdi;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -44,19 +53,23 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.jboss.weld.literal.AnyLiteral;
 import org.jboss.weld.literal.DefaultLiteral;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
-import com.google.common.collect.ArrayListMultimap;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
-import com.itemis.maven.plugins.cdi.annotations.Goal;
 import com.itemis.maven.plugins.cdi.annotations.MojoProduces;
 import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
 import com.itemis.maven.plugins.cdi.annotations.RollbackOnError;
 import com.itemis.maven.plugins.cdi.beans.CdiBeanWrapper;
 import com.itemis.maven.plugins.cdi.beans.CdiProducerBean;
+import com.itemis.maven.plugins.cdi.util.WorkflowUtil;
+import com.itemis.maven.plugins.cdi.workflow.ProcessingWorkflow;
+import com.itemis.maven.plugins.cdi.workflow.WorkflowStep;
 
 /**
  * An abstract Mojo that enabled CDI-based dependency injection for the current maven plugin.<br>
@@ -104,6 +117,7 @@ import com.itemis.maven.plugins.cdi.beans.CdiProducerBean;
  * @since 1.0.0
  */
 public class AbstractCDIMojo extends AbstractMojo implements Extension {
+  private static final String DEFAULT_WORKFLOW_DIR = "META-INF/workflows";
   private static final String FILE_EXTENSION_CLASS = "class";
 
   @Component
@@ -115,16 +129,23 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   @Parameter(readonly = true, defaultValue = "${project.remotePluginRepositories}")
   private List<RemoteRepository> pluginRepos;
 
+  @Parameter
+  private File workflowDescriptor;
+
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
     Weld weld = new Weld();
     weld.addExtension(this);
-    addPluginDependenciesToWeld(weld);
+    addPluginDependencies(weld);
     WeldContainer weldContainer = null;
     try {
       weldContainer = weld.initialize();
-      Multimap<Integer, CDIMojoProcessingStep> mojos = getMojos(weldContainer);
-      executeMojos(mojos);
+      // TODO alternatively let the Mojo implement a method to return a custom workflow (for dynamic workflow
+      // composition)
+      ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowDescriptor(), getGoalName());
+      Map<String, CDIMojoProcessingStep> steps = getAllProcessingSteps(weldContainer);
+      validateWorkflow(workflow, steps);
+      executeWorkflow(workflow, steps);
     } finally {
       if (weldContainer != null && weldContainer.isRunning()) {
         weldContainer.shutdown();
@@ -132,7 +153,7 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     }
   }
 
-  private void addPluginDependenciesToWeld(Weld weld) throws MojoExecutionException {
+  private void addPluginDependencies(Weld weld) throws MojoExecutionException {
     PluginDescriptor pluginDescriptor = getPluginDescriptor();
     List<Dependency> dependencies = pluginDescriptor.getPlugin().getDependencies();
     for (Dependency d : dependencies) {
@@ -214,30 +235,114 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     return classNames;
   }
 
-  private void executeMojos(Multimap<Integer, CDIMojoProcessingStep> mojos)
+  private void validateWorkflow(ProcessingWorkflow workflow, Map<String, CDIMojoProcessingStep> processingSteps)
       throws MojoExecutionException, MojoFailureException {
-    List<Integer> keys = Lists.newArrayList(mojos.keySet());
-    Collections.sort(keys);
-    Stack<CDIMojoProcessingStep> executedMojos = new Stack<CDIMojoProcessingStep>();
-
-    for (Integer key : keys) {
-      for (CDIMojoProcessingStep mojo : mojos.get(key)) {
-        try {
-          executedMojos.push(mojo);
-          mojo.execute();
-        } catch (Throwable t) {
-          rollbackMojos(executedMojos, t);
-          // throw original exception after rollback!
-          if (t instanceof MojoExecutionException) {
-            throw (MojoExecutionException) t;
-          } else if (t instanceof MojoFailureException) {
-            throw (MojoFailureException) t;
-          } else if (t instanceof RuntimeException) {
-            throw (RuntimeException) t;
-          } else {
-            throw new RuntimeException(t);
+    Set<String> unknownIds = Sets.newHashSet();
+    for (WorkflowStep workflowStep : workflow.getProcessingSteps()) {
+      if (workflowStep.isParallel()) {
+        for (String id : workflowStep.getParallelStepIds()) {
+          if (!processingSteps.containsKey(id)) {
+            unknownIds.add(id);
           }
         }
+      } else {
+        if (!processingSteps.containsKey(workflowStep.getStepId())) {
+          unknownIds.add(workflowStep.getStepId());
+        }
+      }
+    }
+
+    if (!unknownIds.isEmpty()) {
+      throw new MojoExecutionException(
+          "There are no implementations for the following processing step ids specified in the workflow: "
+              + Joiner.on(',').join(unknownIds));
+    }
+  }
+
+  private void executeWorkflow(ProcessingWorkflow workflow, Map<String, CDIMojoProcessingStep> processingSteps)
+      throws MojoExecutionException, MojoFailureException {
+    Stack<CDIMojoProcessingStep> executedSteps = new Stack<CDIMojoProcessingStep>();
+    for (WorkflowStep workflowStep : workflow.getProcessingSteps()) {
+      executeSequencialWorkflowStep(workflowStep, processingSteps, executedSteps);
+      executeParallelWorkflowSteps(workflowStep, processingSteps, executedSteps);
+    }
+  }
+
+  private void executeSequencialWorkflowStep(WorkflowStep workflowStep,
+      Map<String, CDIMojoProcessingStep> processingSteps, Stack<CDIMojoProcessingStep> executedSteps)
+          throws MojoExecutionException, MojoFailureException {
+    if (workflowStep.isParallel()) {
+      return;
+    }
+
+    CDIMojoProcessingStep step = processingSteps.get(workflowStep.getStepId());
+    try {
+      executedSteps.push(step);
+      step.execute();
+    } catch (Throwable t) {
+      rollbackMojos(executedSteps, t);
+      // throw original exception after rollback!
+      if (t instanceof MojoExecutionException) {
+        throw (MojoExecutionException) t;
+      } else if (t instanceof MojoFailureException) {
+        throw (MojoFailureException) t;
+      } else if (t instanceof RuntimeException) {
+        throw (RuntimeException) t;
+      } else {
+        throw new RuntimeException(t);
+      }
+    }
+  }
+
+  private void executeParallelWorkflowSteps(WorkflowStep workflowStep,
+      final Map<String, CDIMojoProcessingStep> processingSteps, final Stack<CDIMojoProcessingStep> executedSteps)
+          throws MojoExecutionException, MojoFailureException {
+    if (!workflowStep.isParallel()) {
+      return;
+    }
+
+    Queue<Future<?>> results = new LinkedList<Future<?>>();
+    final Collection<Throwable> thrownExceptions = Lists.newArrayList();
+
+    ExecutorService executorService = Executors.newFixedThreadPool(workflowStep.getParallelStepIds().size());
+    for (final String stepId : workflowStep.getParallelStepIds()) {
+      results.offer(executorService.submit(new Runnable() {
+        @Override
+        public void run() {
+          CDIMojoProcessingStep step = processingSteps.get(stepId);
+          try {
+            executedSteps.push(step);
+            step.execute();
+          } catch (Throwable t) {
+            thrownExceptions.add(t);
+          }
+        }
+      }));
+    }
+
+    while (!results.isEmpty()) {
+      Future<?> result = results.poll();
+      try {
+        result.get();
+      } catch (InterruptedException e) {
+        results.offer(result);
+      } catch (ExecutionException e) {
+        // do nothing since this exception will be handled later!
+      }
+    }
+
+    Throwable firstError = Iterables.getFirst(thrownExceptions, null);
+    if (firstError != null) {
+      rollbackMojos(executedSteps, firstError);
+      // throw original exception after rollback!
+      if (firstError instanceof MojoExecutionException) {
+        throw (MojoExecutionException) firstError;
+      } else if (firstError instanceof MojoFailureException) {
+        throw (MojoFailureException) firstError;
+      } else if (firstError instanceof RuntimeException) {
+        throw (RuntimeException) firstError;
+      } else {
+        throw new RuntimeException(firstError);
       }
     }
   }
@@ -318,9 +423,8 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     return rollbackMethods;
   }
 
-  private Multimap<Integer, CDIMojoProcessingStep> getMojos(WeldContainer weldContainer) {
-    Multimap<Integer, CDIMojoProcessingStep> mojos = ArrayListMultimap.create();
-    String goalName = getGoalName();
+  private Map<String, CDIMojoProcessingStep> getAllProcessingSteps(WeldContainer weldContainer) {
+    Map<String, CDIMojoProcessingStep> steps = Maps.newHashMap();
 
     Set<Bean<?>> mojoBeans = weldContainer.getBeanManager().getBeans(CDIMojoProcessingStep.class, AnyLiteral.INSTANCE);
     // searches all beans for beans that have the matching goal name, ...
@@ -331,17 +435,41 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
           .createCreationalContext(bean);
       CDIMojoProcessingStep mojo = bean.create(creationalContext);
 
-      ProcessingStep cdiMojo = mojo.getClass().getAnnotation(ProcessingStep.class);
-      if (cdiMojo != null) {
-        for (Goal goalMapping : cdiMojo.value()) {
-          if (goalMapping.enabled() && Objects.equal(goalName, goalMapping.name())) {
-            mojos.put(goalMapping.stepNumber(), mojo);
-          }
-        }
+      ProcessingStep annotation = mojo.getClass().getAnnotation(ProcessingStep.class);
+      if (annotation != null) {
+        String id = annotation.id();
+        Preconditions.checkState(!steps.containsKey(id), "The processing step id '" + id + "' is not unique!");
+        steps.put(id, mojo);
       }
     }
-    return mojos;
+
+    return steps;
   }
+
+  // private Multimap<Integer, CDIMojoProcessingStep> getMojos(WeldContainer weldContainer) {
+  // Multimap<Integer, CDIMojoProcessingStep> mojos = ArrayListMultimap.create();
+  // String goalName = getGoalName();
+  //
+  // Set<Bean<?>> mojoBeans = weldContainer.getBeanManager().getBeans(CDIMojoProcessingStep.class, AnyLiteral.INSTANCE);
+  // // searches all beans for beans that have the matching goal name, ...
+  // for (Bean<?> b : mojoBeans) {
+  // @SuppressWarnings("unchecked")
+  // Bean<CDIMojoProcessingStep> bean = (Bean<CDIMojoProcessingStep>) b;
+  // CreationalContext<CDIMojoProcessingStep> creationalContext = weldContainer.getBeanManager()
+  // .createCreationalContext(bean);
+  // CDIMojoProcessingStep mojo = bean.create(creationalContext);
+  //
+  // ProcessingStep cdiMojo = mojo.getClass().getAnnotation(ProcessingStep.class);
+  // if (cdiMojo != null) {
+  // for (Goal goalMapping : cdiMojo.value()) {
+  // if (goalMapping.enabled() && Objects.equal(goalName, goalMapping.name())) {
+  // mojos.put(goalMapping.stepNumber(), mojo);
+  // }
+  // }
+  // }
+  // }
+  // return mojos;
+  // }
 
   private String getGoalName() {
     PluginDescriptor pluginDescriptor = getPluginDescriptor();
@@ -401,5 +529,17 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
 
   private PluginDescriptor getPluginDescriptor() {
     return (PluginDescriptor) getPluginContext().get("pluginDescriptor");
+  }
+
+  private InputStream getWorkflowDescriptor() throws MojoExecutionException {
+    if (this.workflowDescriptor != null && this.workflowDescriptor.exists() && this.workflowDescriptor.isFile()) {
+      try {
+        return new FileInputStream(this.workflowDescriptor);
+      } catch (Exception e) {
+        throw new MojoExecutionException("Unable to load custom workflow for goal " + getGoalName(), e);
+      }
+    }
+    return Thread.currentThread().getContextClassLoader()
+        .getResourceAsStream(DEFAULT_WORKFLOW_DIR + "/" + getGoalName());
   }
 }
