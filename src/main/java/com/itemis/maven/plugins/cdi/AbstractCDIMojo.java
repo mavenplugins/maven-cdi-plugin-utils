@@ -137,14 +137,15 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
 
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
+    System.setProperty("org.jboss.logging.provider", "slf4j");
+    System.setProperty("org.slf4j.simpleLogger.log.org.jboss.weld", "debug");
+
     Weld weld = new Weld();
     weld.addExtension(this);
     addPluginDependencies(weld);
     WeldContainer weldContainer = null;
     try {
       weldContainer = weld.initialize();
-      // IDEA: alternatively let the Mojo implement a method to return a custom workflow (for dynamic workflow
-      // composition)
       ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowDescriptor(), getGoalName());
       Map<String, CDIMojoProcessingStep> steps = getAllProcessingSteps(weldContainer);
 
