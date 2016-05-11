@@ -6,21 +6,22 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.base.Strings;
-import com.itemis.maven.plugins.cdi.workflow.ProcessingWorkflow;
-import com.itemis.maven.plugins.cdi.workflow.WorkflowStep;
+import com.itemis.maven.plugins.cdi.internal.util.workflow.ProcessingWorkflow;
+import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowStep;
+import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowUtil;
 
 public class WorkflowUtilTest {
 
   @Test
-  public void testParseWorkflow_Sequencial() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("wf1_sequencial"), "wf1");
+  public void testParseWorkflow_Sequential() {
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("wf1_sequential"), "wf1");
 
     Assert.assertEquals("wf1", workflow.getGoal());
     for (WorkflowStep step : workflow.getProcessingSteps()) {
-      Assert.assertFalse("The workflow contains at leas one parallel step although all steps should be sequencial!",
+      Assert.assertFalse("The workflow contains at leas one parallel step although all steps should be sequential!",
           step.isParallel());
       Assert.assertNotNull(
-          "The processing step id doesn't seem to be set correctly for the sequencial processing step.",
+          "The processing step id doesn't seem to be set correctly for the sequential processing step.",
           Strings.emptyToNull(step.getStepId()));
     }
   }
@@ -39,7 +40,7 @@ public class WorkflowUtilTest {
     for (int i = 1; i < workflow.getProcessingSteps().size(); i++) {
       WorkflowStep step = workflow.getProcessingSteps().get(i);
       Assert.assertFalse(
-          "The workflow contains a further parallel steps although all but the first step should be sequencial!",
+          "The workflow contains a further parallel steps although all but the first step should be sequential!",
           step.isParallel());
     }
   }

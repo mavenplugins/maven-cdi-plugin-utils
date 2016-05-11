@@ -1,4 +1,4 @@
-package com.itemis.maven.plugins.cdi.util;
+package com.itemis.maven.plugins.cdi.internal.util.workflow;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
@@ -24,9 +24,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.itemis.maven.plugins.cdi.CDIMojoProcessingStep;
 import com.itemis.maven.plugins.cdi.annotations.RollbackOnError;
-import com.itemis.maven.plugins.cdi.workflow.ProcessingWorkflow;
-import com.itemis.maven.plugins.cdi.workflow.WorkflowStep;
 
+/**
+ * An executor for a {@link ProcessingWorkflow} which takes care of executing the steps of the workflow in the correct
+ * order as well as rolling back the steps in the correct order in case of a failure.
+ *
+ * @author <a href="mailto:stanley.hillner@itemis.de">Stanley Hillner</a>
+ * @since 2.0.0
+ */
 public class WorkflowExecutor {
   private Log log;
   private ProcessingWorkflow workflow;
@@ -39,6 +44,15 @@ public class WorkflowExecutor {
     this.log = log;
   }
 
+  /**
+   * Performs a validation of the workflow with respect to the configured set of processing steps this plugin provides.
+   * <br>
+   * It is verified that each workflow step has a corresponding implementation providing the same step-id as specified
+   * in the workflow.
+   *
+   * @throws MojoExecutionException if there are missing processing step implementations for one or more ids of the
+   *           workflow. The exception message will list all missing ids.
+   */
   public void validate() throws MojoExecutionException {
     Set<String> unknownIds = Sets.newHashSet();
     for (WorkflowStep workflowStep : this.workflow.getProcessingSteps()) {
@@ -62,16 +76,23 @@ public class WorkflowExecutor {
     }
   }
 
+  /**
+   * Performs the actual workflow execution in the correct order.<br>
+   * If an exceptional case is reached, all already executed steps will be rolled back prior to throwing the exception.
+   *
+   * @throws MojoExecutionException if any of the processing steps of the workflow throw such an exception.
+   * @throws MojoFailureException if any of the processing steps of the workflow throw such an exception.
+   */
   public void execute() throws MojoExecutionException, MojoFailureException {
     this.executedSteps = new Stack<CDIMojoProcessingStep>();
 
     for (WorkflowStep workflowStep : this.workflow.getProcessingSteps()) {
-      executeSequencialWorkflowStep(workflowStep);
+      executeSequentialWorkflowStep(workflowStep);
       executeParallelWorkflowSteps(workflowStep);
     }
   }
 
-  private void executeSequencialWorkflowStep(WorkflowStep workflowStep)
+  private void executeSequentialWorkflowStep(WorkflowStep workflowStep)
       throws MojoExecutionException, MojoFailureException {
     if (workflowStep.isParallel()) {
       return;

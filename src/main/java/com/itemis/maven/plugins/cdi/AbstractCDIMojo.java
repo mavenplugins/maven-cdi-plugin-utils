@@ -33,19 +33,18 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.itemis.maven.plugins.cdi.annotations.MojoProduces;
 import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
-import com.itemis.maven.plugins.cdi.beans.CdiBeanWrapper;
-import com.itemis.maven.plugins.cdi.beans.CdiProducerBean;
-import com.itemis.maven.plugins.cdi.util.CDIUtil;
-import com.itemis.maven.plugins.cdi.util.MavenUtil;
-import com.itemis.maven.plugins.cdi.util.WorkflowExecutor;
-import com.itemis.maven.plugins.cdi.util.WorkflowUtil;
-import com.itemis.maven.plugins.cdi.workflow.ProcessingWorkflow;
+import com.itemis.maven.plugins.cdi.internal.beans.CdiBeanWrapper;
+import com.itemis.maven.plugins.cdi.internal.beans.CdiProducerBean;
+import com.itemis.maven.plugins.cdi.internal.util.CDIUtil;
+import com.itemis.maven.plugins.cdi.internal.util.MavenUtil;
+import com.itemis.maven.plugins.cdi.internal.util.workflow.ProcessingWorkflow;
+import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowExecutor;
+import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowUtil;
 
 /**
- * An abstract Mojo that enabled CDI-based dependency injection for the current maven plugin.<br>
+ * An abstract Mojo that enables CDI-based dependency injection for the current maven plugin.<br>
  * This Mojo enables you to decouple different parts of your plugin implementation and also dynamically inject
- * additional funktionality into your plugin. It provides the possibility to use nearly the full CDI stack as there are
- * injection, producers, interceptors, decorators, alternatives, ...<br>
+ * additional funktionality into your plugin.<br>
  * <br>
  *
  * <b>ATTENTION:</b> Please do not use annotations such as {@code @javax.inject.Inject} or
@@ -54,8 +53,8 @@ import com.itemis.maven.plugins.cdi.workflow.ProcessingWorkflow;
  * adaption!<br>
  * <br>
  *
- * Using this abstract Mojo as the parent of your own Mojo, you can simply see the Mojo class as a data dispatcher
- * container whose single responsibility is to provide paramters for your business logic implementations. Simply get the
+ * Using this abstract Mojo as the parent of your own Mojo, you can simply see the Mojo class as a data container whose
+ * single responsibility is to provide parameters for your business logic implementations. Simply get the
  * Mojo parameters injected and use the producer annotation to provide the bean to your implementations:
  *
  * <pre>
@@ -81,6 +80,41 @@ import com.itemis.maven.plugins.cdi.workflow.ProcessingWorkflow;
  *   }
  *   return log;
  * }
+ * </pre>
+ *
+ * <b>ATTENTION:</b> Make sure to not override the {@link #execute()} method since this method is responsible for the
+ * CDI setup and will
+ * trigger your business logic impelementations automatically.<br>
+ * Implement your business logic in one or more classes that are annotated with {@link ProcessingStep} and implement
+ * {@link CDIMojoProcessingStep}. Then orchestrate your standard business workflow in a worflow descriptor file.<br>
+ * <br>
+ *
+ * <h1>The Workflow Descriptor</h1>
+ * <ul>
+ * <li>The descriptor is located under <i>META-INF/workflows</i></li>
+ * <li>The name of the workflow descriptor file must match the name of the goal. F.i. goal="perform"
+ * workflow-file="META-INF/workflows/perform"</li>
+ * <li>A simple workflow lists just all processing step ids in the respective order (each id on a new line).</li>
+ * <li>Steps that are encapsuled in <code>parallel{}</code> are executed in parallel. All other steps will be executed
+ * sequentially.</li>
+ * <li>A line starting with a <code>#</code> will be treated as a comment.</li>
+ * </ul>
+ *
+ * <h2>A Sample Workflow</h2>
+ * goal=perform
+ * workflow-file=META-INF/workflows/perform
+ *
+ * <pre>
+ * init
+ * # The following steps can be run in parallel since they do not modify the project but only perform some checks
+ * parallel {
+ *   checkUser
+ *   checkConnection
+ *   checkAether
+ * }
+ * compute
+ * upload
+ * validate
  * </pre>
  *
  * @author <a href="mailto:stanley.hillner@itemis.de">Stanley Hillner</a>
@@ -165,6 +199,8 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
       Optional<File> f = MavenUtil.resolvePluginDependency(d, this.pluginRepos, this.resolver, this.repoSystemSession);
       if (f.isPresent()) {
         CDIUtil.addAllClasses(weld, getClass().getClassLoader(), f.get(), getLog());
+      } else {
+        throw new MojoExecutionException("Could not resolve the following plugin dependency: " + d);
       }
     }
   }

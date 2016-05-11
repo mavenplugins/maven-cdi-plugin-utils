@@ -1,4 +1,4 @@
-package com.itemis.maven.plugins.cdi.util;
+package com.itemis.maven.plugins.cdi.internal.util;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,9 +26,20 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
+/**
+ * A utility class for handling CDI-specific tasks such as getting all beans of a specific type or adding beans to the
+ * bean manager, ...
+ *
+ * @author <a href="mailto:stanley.hillner@itemis.de">Stanley Hillner</a>
+ * @since 2.0.0
+ */
 public class CDIUtil {
   private static final String FILE_EXTENSION_CLASS = "class";
 
+  /**
+   * @param x the object from which all qualifier annotations shall be searched out.
+   * @return a set of all qualifiers the object's class is annotated with.
+   */
   public static Set<Annotation> getCdiQualifiers(AccessibleObject x) {
     Set<Annotation> qualifiers = Sets.newHashSet();
     for (Annotation annotation : x.getAnnotations()) {
@@ -42,6 +53,13 @@ public class CDIUtil {
     return qualifiers;
   }
 
+  /**
+   * Searches the container for all beans of a certain type without respecting qualifiers.
+   *
+   * @param weldContainer the container providing the beans.
+   * @param type the type of the beans to search for.
+   * @return a collection of all found beans of the specified type.
+   */
   public static <T> Collection<T> getAllBeansOfType(WeldContainer weldContainer, Class<T> type) {
     Collection<T> beans = Lists.newArrayList();
     Set<Bean<?>> cdiBeans = weldContainer.getBeanManager().getBeans(type, AnyLiteral.INSTANCE);
@@ -56,6 +74,16 @@ public class CDIUtil {
     return beans;
   }
 
+  /**
+   * Queries the specified file container (folder or JAR file) for all class files and adds all found classes to the
+   * weld container so that these classes are later injectable.
+   *
+   * @param weld the CDI container to add the classes to.
+   * @param classLoader the class loader used to query and load classes from the file container.
+   * @param container the file container where to search classes. The container can be a folder or a JAR file.
+   * @param log the log for processing output.
+   * @throws MojoExecutionException if it was not possible to query the file container.
+   */
   public static void addAllClasses(Weld weld, ClassLoader classLoader, File container, Log log)
       throws MojoExecutionException {
     Set<String> classNames = null;
@@ -75,7 +103,7 @@ public class CDIUtil {
         Class<?> cls = classLoader.loadClass(className);
         weld.addBeanClass(cls);
       } catch (ClassNotFoundException e) {
-        log.warn("Could not load the following class which might cause later issues: " + className);
+        log.error("Could not load the following class which might cause later issues: " + className);
         if (log.isDebugEnabled()) {
           log.debug(e);
         }

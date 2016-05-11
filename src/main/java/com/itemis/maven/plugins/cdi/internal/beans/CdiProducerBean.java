@@ -1,4 +1,4 @@
-package com.itemis.maven.plugins.cdi.beans;
+package com.itemis.maven.plugins.cdi.internal.beans;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;

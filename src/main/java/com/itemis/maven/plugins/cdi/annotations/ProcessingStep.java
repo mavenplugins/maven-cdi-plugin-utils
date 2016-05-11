@@ -10,10 +10,7 @@ import com.itemis.maven.plugins.cdi.CDIMojoProcessingStep;
 
 /**
  * A class-level annotation used to specify some metadata for the executions of the {@link CDIMojoProcessingStep
- * injected
- * CDI Mojo instances}.<br>
- * You can provide a mapping of goal name to execution order (step where this mojo will be executed). Multiple mappings
- * are allowed, even for the same goal name!
+ * injected CDI Mojo instances}.<br>
  *
  * @author <a href="mailto:stanley.hillner@itemis.de">Stanley Hillner</a>
  * @since 1.0.0
@@ -27,5 +24,10 @@ public @interface ProcessingStep {
    */
   String id();
 
+  /**
+   * @return a description of this processing step's responsibilities. This description will later be used as output to
+   *         users of your plugin that want to provide a custom processing workflow.
+   * @since 2.0.0
+   */
   String description() default "";
 }
