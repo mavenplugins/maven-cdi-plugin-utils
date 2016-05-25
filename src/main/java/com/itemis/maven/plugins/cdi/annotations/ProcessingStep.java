@@ -30,4 +30,14 @@ public @interface ProcessingStep {
    * @since 2.0.0
    */
   String description() default "";
+
+  /**
+   * If this step requires a network connection but Maven is executed in offline mode, the workflow won't ever be
+   * executed and the build will fail fast with an appropriate error message.
+   *
+   * @return {@code true} if the execution of this processing step requires Maven to operate in online mode. Return
+   *         {@code false} if the step can be executed safely without having a network connection.
+   * @since 2.1.0
+   */
+  boolean requiresOnline() default true;
 }

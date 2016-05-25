@@ -9,7 +9,7 @@
 
   <groupId>com.itemis.maven.plugins</groupId>
   <artifactId>cdi-plugin-utils</artifactId>
-  <version>2.0.1-SNAPSHOT</version>
+  <version>2.1.0-SNAPSHOT</version>
 
   <name>CDI Plugin Utilities</name>
   <description>Provides an abstract Mojo that enables CDI-based dependency injection for Maven Plugins.</description>
@@ -83,6 +83,11 @@
     </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
+      <artifactId>maven-core</artifactId>
+      <version>${version.maven}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
       <artifactId>maven-model</artifactId>
       <version>${version.maven}</version>
     </dependency>
@@ -94,6 +99,11 @@
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-plugin-api</artifactId>
+      <version>${version.maven}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-settings</artifactId>
       <version>${version.maven}</version>
     </dependency>
     <dependency>

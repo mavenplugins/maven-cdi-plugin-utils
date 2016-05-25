@@ -22,6 +22,7 @@ import org.apache.maven.plugin.descriptor.MojoDescriptor;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.settings.Settings;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.impl.ArtifactResolver;
 import org.eclipse.aether.repository.RemoteRepository;
@@ -124,21 +125,28 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   private static final String DEFAULT_WORKFLOW_DIR = "META-INF/workflows";
 
   @Component
-  private ArtifactResolver resolver;
+  protected ArtifactResolver _resolver;
+
+  @Parameter(defaultValue = "${settings}", readonly = true, required = true)
+  protected Settings _settings;
 
   @Parameter(readonly = true, defaultValue = "${repositorySystemSession}")
-  private RepositorySystemSession repoSystemSession;
+  protected RepositorySystemSession _repoSystemSession;
 
   @Parameter(readonly = true, defaultValue = "${project.remotePluginRepositories}")
-  private List<RemoteRepository> pluginRepos;
+  protected List<RemoteRepository> _pluginRepos;
 
   @Parameter
-  private File workflowDescriptor;
+  protected File workflowDescriptor;
 
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
     System.setProperty("org.jboss.logging.provider", "slf4j");
-    System.setProperty("org.slf4j.simpleLogger.log.org.jboss.weld", "debug");
+    String logLevel = "info";
+    if (getLog().isDebugEnabled()) {
+      logLevel = "debug";
+    }
+    System.setProperty("org.slf4j.simpleLogger.log.org.jboss.weld", logLevel);
 
     Weld weld = new Weld();
     weld.addExtension(this);
@@ -150,7 +158,7 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
       Map<String, CDIMojoProcessingStep> steps = getAllProcessingSteps(weldContainer);
 
       WorkflowExecutor executor = new WorkflowExecutor(workflow, steps, getLog());
-      executor.validate();
+      executor.validate(!this._settings.isOffline());
       executor.execute();
     } finally {
       if (weldContainer != null && weldContainer.isRunning()) {
@@ -197,7 +205,8 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     PluginDescriptor pluginDescriptor = getPluginDescriptor();
     List<Dependency> dependencies = pluginDescriptor.getPlugin().getDependencies();
     for (Dependency d : dependencies) {
-      Optional<File> f = MavenUtil.resolvePluginDependency(d, this.pluginRepos, this.resolver, this.repoSystemSession);
+      Optional<File> f = MavenUtil.resolvePluginDependency(d, this._pluginRepos, this._resolver,
+          this._repoSystemSession);
       if (f.isPresent()) {
         CDIUtil.addAllClasses(weld, getClass().getClassLoader(), f.get(), getLog());
       } else {

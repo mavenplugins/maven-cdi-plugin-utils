@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.itemis.maven.plugins.cdi.CDIMojoProcessingStep;
+import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
 import com.itemis.maven.plugins.cdi.annotations.RollbackOnError;
 
 /**
@@ -50,21 +51,28 @@ public class WorkflowExecutor {
    * It is verified that each workflow step has a corresponding implementation providing the same step-id as specified
    * in the workflow.
    *
+   * @param isOnlineExecution whether Maven is executed in online mode or not.
    * @throws MojoExecutionException if there are missing processing step implementations for one or more ids of the
    *           workflow. The exception message will list all missing ids.
    */
-  public void validate() throws MojoExecutionException {
+  public void validate(boolean isOnlineExecution) throws MojoExecutionException {
     Set<String> unknownIds = Sets.newHashSet();
     for (WorkflowStep workflowStep : this.workflow.getProcessingSteps()) {
       if (workflowStep.isParallel()) {
         for (String id : workflowStep.getParallelStepIds()) {
-          if (!this.processingSteps.containsKey(id)) {
+          CDIMojoProcessingStep step = this.processingSteps.get(id);
+          if (step == null) {
             unknownIds.add(id);
+          } else {
+            verifyOnlineStatus(step, isOnlineExecution);
           }
         }
       } else {
-        if (!this.processingSteps.containsKey(workflowStep.getStepId())) {
+        CDIMojoProcessingStep step = this.processingSteps.get(workflowStep.getStepId());
+        if (step == null) {
           unknownIds.add(workflowStep.getStepId());
+        } else {
+          verifyOnlineStatus(step, isOnlineExecution);
         }
       }
     }
@@ -73,6 +81,14 @@ public class WorkflowExecutor {
       throw new MojoExecutionException(
           "There are no implementations for the following processing step ids specified in the workflow: "
               + Joiner.on(',').join(unknownIds));
+    }
+  }
+
+  private void verifyOnlineStatus(CDIMojoProcessingStep step, boolean isOnlineExecution) throws MojoExecutionException {
+    ProcessingStep stepAnnotation = step.getClass().getAnnotation(ProcessingStep.class);
+    if (stepAnnotation.requiresOnline() && !isOnlineExecution) {
+      throw new MojoExecutionException(
+          "The execution of this Mojo requires Maven to operate in online mode but Maven has been started using the offline option.");
     }
   }
 
