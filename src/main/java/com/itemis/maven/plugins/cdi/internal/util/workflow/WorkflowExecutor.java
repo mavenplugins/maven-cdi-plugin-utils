@@ -14,15 +14,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.project.MavenProject;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.itemis.maven.plugins.cdi.CDIMojoProcessingStep;
+import com.itemis.maven.plugins.cdi.ExecutionContext;
 import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
 import com.itemis.maven.plugins.cdi.annotations.RollbackOnError;
 
@@ -37,11 +40,14 @@ public class WorkflowExecutor {
   private Log log;
   private ProcessingWorkflow workflow;
   private Map<String, CDIMojoProcessingStep> processingSteps;
-  private Stack<CDIMojoProcessingStep> executedSteps;
+  private Stack<Pair<CDIMojoProcessingStep, ExecutionContext>> executedSteps;
+  private MavenProject project;
 
-  public WorkflowExecutor(ProcessingWorkflow workflow, Map<String, CDIMojoProcessingStep> processingSteps, Log log) {
+  public WorkflowExecutor(ProcessingWorkflow workflow, Map<String, CDIMojoProcessingStep> processingSteps,
+      MavenProject project, Log log) {
     this.workflow = workflow;
     this.processingSteps = processingSteps;
+    this.project = project;
     this.log = log;
   }
 
@@ -59,18 +65,20 @@ public class WorkflowExecutor {
     Set<String> unknownIds = Sets.newHashSet();
     for (WorkflowStep workflowStep : this.workflow.getProcessingSteps()) {
       if (workflowStep.isParallel()) {
-        for (String id : workflowStep.getParallelStepIds()) {
-          CDIMojoProcessingStep step = this.processingSteps.get(id);
+        ParallelWorkflowStep parallelWorkflowStep = (ParallelWorkflowStep) workflowStep;
+        for (SimpleWorkflowStep simpleWorkflowStep : parallelWorkflowStep.getSteps()) {
+          CDIMojoProcessingStep step = this.processingSteps.get(simpleWorkflowStep.getStepId());
           if (step == null) {
-            unknownIds.add(id);
+            unknownIds.add(simpleWorkflowStep.getStepId());
           } else {
             verifyOnlineStatus(step, isOnlineExecution);
           }
         }
       } else {
-        CDIMojoProcessingStep step = this.processingSteps.get(workflowStep.getStepId());
+        SimpleWorkflowStep simpleWorkflowStep = (SimpleWorkflowStep) workflowStep;
+        CDIMojoProcessingStep step = this.processingSteps.get(simpleWorkflowStep.getStepId());
         if (step == null) {
-          unknownIds.add(workflowStep.getStepId());
+          unknownIds.add(simpleWorkflowStep.getStepId());
         } else {
           verifyOnlineStatus(step, isOnlineExecution);
         }
@@ -100,7 +108,7 @@ public class WorkflowExecutor {
    * @throws MojoFailureException if any of the processing steps of the workflow throw such an exception.
    */
   public void execute() throws MojoExecutionException, MojoFailureException {
-    this.executedSteps = new Stack<CDIMojoProcessingStep>();
+    this.executedSteps = new Stack<Pair<CDIMojoProcessingStep, ExecutionContext>>();
 
     for (WorkflowStep workflowStep : this.workflow.getProcessingSteps()) {
       executeSequentialWorkflowStep(workflowStep);
@@ -114,10 +122,13 @@ public class WorkflowExecutor {
       return;
     }
 
-    CDIMojoProcessingStep step = this.processingSteps.get(workflowStep.getStepId());
+    SimpleWorkflowStep simpleWorkflowStep = (SimpleWorkflowStep) workflowStep;
+    ExecutionContext executionContext = this.workflow.getExecutionContext(simpleWorkflowStep.getCompositeStepId());
+    CDIMojoProcessingStep step = this.processingSteps.get(simpleWorkflowStep.getStepId());
     try {
-      this.executedSteps.push(step);
-      step.execute();
+      this.executedSteps.push(Pair.of(step, executionContext));
+      executionContext.expandProjectVariables(this.project);
+      step.execute(executionContext);
     } catch (Throwable t) {
       rollback(t);
       // throw original exception after rollback!
@@ -142,15 +153,19 @@ public class WorkflowExecutor {
     Queue<Future<?>> results = new LinkedList<Future<?>>();
     final Collection<Throwable> thrownExceptions = Lists.newArrayList();
 
-    ExecutorService executorService = Executors.newFixedThreadPool(workflowStep.getParallelStepIds().size());
-    for (final String stepId : workflowStep.getParallelStepIds()) {
+    ParallelWorkflowStep parallelWorkflowStep = (ParallelWorkflowStep) workflowStep;
+    ExecutorService executorService = Executors.newFixedThreadPool(parallelWorkflowStep.getSteps().size());
+    for (final SimpleWorkflowStep simpleWorkflowStep : parallelWorkflowStep.getSteps()) {
       results.offer(executorService.submit(new Runnable() {
         @Override
         public void run() {
-          CDIMojoProcessingStep step = WorkflowExecutor.this.processingSteps.get(stepId);
+          CDIMojoProcessingStep step = WorkflowExecutor.this.processingSteps.get(simpleWorkflowStep.getStepId());
           try {
-            WorkflowExecutor.this.executedSteps.push(step);
-            step.execute();
+            ExecutionContext executionContext = WorkflowExecutor.this.workflow
+                .getExecutionContext(simpleWorkflowStep.getCompositeStepId());
+            WorkflowExecutor.this.executedSteps.push(Pair.of(step, executionContext));
+            executionContext.expandProjectVariables(WorkflowExecutor.this.project);
+            step.execute(executionContext);
           } catch (Throwable t) {
             thrownExceptions.add(t);
           }
@@ -187,11 +202,12 @@ public class WorkflowExecutor {
 
   private void rollback(Throwable t) {
     while (!this.executedSteps.empty()) {
-      rollback(this.executedSteps.pop(), t);
+      Pair<CDIMojoProcessingStep, ExecutionContext> pair = this.executedSteps.pop();
+      rollback(pair.getLeft(), pair.getRight(), t);
     }
   }
 
-  private void rollback(CDIMojoProcessingStep step, Throwable t) {
+  private void rollback(CDIMojoProcessingStep step, ExecutionContext executionContext, Throwable t) {
     // get rollback methods and sort alphabetically
     List<Method> rollbackMethods = getRollbackMethods(step, t.getClass());
     rollbackMethods.sort(new Comparator<Method>() {
@@ -205,10 +221,25 @@ public class WorkflowExecutor {
     for (Method rollbackMethod : rollbackMethods) {
       rollbackMethod.setAccessible(true);
       try {
-        if (rollbackMethod.getParameters().length == 1) {
-          rollbackMethod.invoke(step, t);
-        } else {
-          rollbackMethod.invoke(step);
+        Class<?>[] parameterTypes = rollbackMethod.getParameterTypes();
+        switch (parameterTypes.length) {
+          case 0:
+            rollbackMethod.invoke(step);
+            break;
+          case 1:
+            if (ExecutionContext.class == parameterTypes[0]) {
+              rollbackMethod.invoke(step, executionContext);
+            } else {
+              rollbackMethod.invoke(step, t);
+            }
+            break;
+          case 2:
+            if (ExecutionContext.class == parameterTypes[0]) {
+              rollbackMethod.invoke(step, executionContext, t);
+            } else {
+              rollbackMethod.invoke(step, t, executionContext);
+            }
+            break;
         }
       } catch (ReflectiveOperationException e) {
         this.log.error("Error calling rollback method of Mojo.", e);
@@ -247,11 +278,20 @@ public class WorkflowExecutor {
             case 1:
               if (parameterTypes[0].isAssignableFrom(causeType)) {
                 rollbackMethods.add(m);
+              } else if (parameterTypes[0] == ExecutionContext.class) {
+                rollbackMethods.add(m);
+              }
+              break;
+            case 2:
+              if (parameterTypes[0] == ExecutionContext.class && parameterTypes[1].isAssignableFrom(causeType)) {
+                rollbackMethods.add(m);
+              } else if (parameterTypes[0].isAssignableFrom(causeType) && parameterTypes[1] == ExecutionContext.class) {
+                rollbackMethods.add(m);
               }
               break;
             default:
               this.log.warn(
-                  "Found rollback method with more than one parameters! Only zero or one parameter of type <T extends Throwable> is allowed!");
+                  "Found rollback method with more than two parameters! Only zero, one or two parameters of type <T extends Throwable> and ExecutionContext are allowed!");
               break;
           }
         }

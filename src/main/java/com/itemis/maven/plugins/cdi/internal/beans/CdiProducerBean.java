@@ -8,6 +8,7 @@ import java.util.Set;
 
 import javax.enterprise.context.Dependent;
 import javax.enterprise.context.spi.CreationalContext;
+import javax.enterprise.inject.Typed;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.InjectionPoint;
@@ -23,7 +24,7 @@ public class CdiProducerBean<T> implements Bean<T> {
   private Object hostInstance;
   private BeanManager beanManager;
   private Set<Annotation> qualifiers;
-  private Type type;
+  private Set<Type> types;
   private Class<?> instanceClass;
 
   public CdiProducerBean(Method method, Object hostInstance, BeanManager beanManager, Type type, Class<?> instanceClass,
@@ -31,9 +32,36 @@ public class CdiProducerBean<T> implements Bean<T> {
     this.method = method;
     this.hostInstance = hostInstance;
     this.beanManager = beanManager;
-    this.type = type;
     this.instanceClass = instanceClass;
     this.qualifiers = qualifiers;
+    this.types = calcBeanTypes(type);
+  }
+
+  private Set<Type> calcBeanTypes(Type implTpye) {
+    Set<Type> beanTypes = Sets.newHashSet();
+    Typed typedAnnotation = ((Class<?>) implTpye).getAnnotation(Typed.class);
+    if (typedAnnotation != null) {
+      for (Class<?> cls : typedAnnotation.value()) {
+        beanTypes.add(cls);
+      }
+    } else {
+      beanTypes.addAll(getTypeClasses((Class<?>) implTpye));
+    }
+    return beanTypes;
+  }
+
+  private Set<Class<?>> getTypeClasses(Class<?> cls) {
+    if (cls == null) {
+      return Collections.emptySet();
+    }
+
+    Set<Class<?>> classes = Sets.newHashSet();
+    classes.add(cls);
+    classes.addAll(getTypeClasses(cls.getSuperclass()));
+    for (Class<?> iface : cls.getInterfaces()) {
+      classes.addAll(getTypeClasses(iface));
+    }
+    return classes;
   }
 
   @SuppressWarnings("unchecked")
@@ -74,7 +102,7 @@ public class CdiProducerBean<T> implements Bean<T> {
 
   @Override
   public Set<Type> getTypes() {
-    return Collections.singleton(this.type);
+    return this.types;
   }
 
   @Override

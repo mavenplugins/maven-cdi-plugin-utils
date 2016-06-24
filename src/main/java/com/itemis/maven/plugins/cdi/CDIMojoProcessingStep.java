@@ -40,8 +40,10 @@ public interface CDIMojoProcessingStep {
    * optional argument matches the caught Exception type, the rollback method will be executed. It is possible to
    * declare multiple rollback methods for a Processing Step.
    *
+   * @param context the context within which this step is executed. This is necessary for multiple parameterized
+   *          executions of the same step.
    * @throws MojoExecutionException if an unexpected execution exception occurred.
    * @throws MojoFailureException an expected exceptional case during the Mojo execution.
    */
-  void execute() throws MojoExecutionException, MojoFailureException;
+  void execute(ExecutionContext context) throws MojoExecutionException, MojoFailureException;
 }

@@ -7,6 +7,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 import com.itemis.maven.plugins.cdi.CDIMojoProcessingStep;
+import com.itemis.maven.plugins.cdi.ExecutionContext;
 
 /**
  * This annotation can be put on any method of an {@link CDIMojoProcessingStep} with the following purpose and
@@ -20,10 +21,14 @@ import com.itemis.maven.plugins.cdi.CDIMojoProcessingStep;
  * <b>Restrictions:</b>
  * <ul>
  * <li>Any return type of the method will be ignored, method should be void!</li>
- * <li>Method may have exactly one parameter of type {@code <T extends Throwable>} which takes the cause for the
- * rollback.</li>
+ * <li>Method may have one or two parameters:
+ * <ul>
+ * <li>Max. one of type {@code <T extends Throwable>} which takes the cause of the rollback.</li>
+ * <li>Max. one of type {@link ExecutionContext} to get the context of the original step execution.</li>
+ * </ul>
+ * </li>
  * <li>Otherwise the signature must not declare any arguments</li>
- * <li>If the method signature declares a Throwable as the single argument but the type does not match the caught
+ * <li>If the method signature declares a Throwable as one of its arguments but the type does not match the caught
  * exception, the method is skipped. If there are other rollback methods declared with matching exception types or
  * without one, these will be executed as usual.</li>
  * </ul>

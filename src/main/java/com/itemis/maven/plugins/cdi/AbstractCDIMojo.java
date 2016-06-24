@@ -8,11 +8,13 @@ import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Extension;
+import javax.inject.Named;
 
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.AbstractMojo;
@@ -22,6 +24,7 @@ import org.apache.maven.plugin.descriptor.MojoDescriptor;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 import org.apache.maven.settings.Settings;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.impl.ArtifactResolver;
@@ -32,6 +35,7 @@ import org.jboss.weld.environment.se.WeldContainer;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.itemis.maven.plugins.cdi.annotations.MojoProduces;
 import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
 import com.itemis.maven.plugins.cdi.internal.beans.CdiBeanWrapper;
@@ -41,6 +45,7 @@ import com.itemis.maven.plugins.cdi.internal.util.MavenUtil;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.ProcessingWorkflow;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowExecutor;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowUtil;
+import com.itemis.maven.plugins.cdi.logging.MavenLogWrapper;
 
 /**
  * An abstract Mojo that enables CDI-based dependency injection for the current maven plugin.<br>
@@ -136,8 +141,22 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   @Parameter(readonly = true, defaultValue = "${project.remotePluginRepositories}")
   protected List<RemoteRepository> _pluginRepos;
 
-  @Parameter
+  @Parameter(property = "workflow")
   protected File workflowDescriptor;
+
+  @Parameter(defaultValue = "true", property = "enableLogTimestamps")
+  @MojoProduces
+  @Named("enableLogTimestamps")
+  private boolean enableLogTimestamps;
+
+  @MojoProduces
+  public MavenLogWrapper createLogWrapper() {
+    MavenLogWrapper log = new MavenLogWrapper(getLog());
+    if (this.enableLogTimestamps) {
+      log.enableLogTimestamps();
+    }
+    return log;
+  }
 
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
@@ -155,9 +174,10 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     try {
       weldContainer = weld.initialize();
       ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowDescriptor(), getGoalName());
+      WorkflowUtil.addExecutionContexts(workflow);
       Map<String, CDIMojoProcessingStep> steps = getAllProcessingSteps(weldContainer);
 
-      WorkflowExecutor executor = new WorkflowExecutor(workflow, steps, getLog());
+      WorkflowExecutor executor = new WorkflowExecutor(workflow, steps, getProject(), getLog());
       executor.validate(!this._settings.isOffline());
       executor.execute();
     } finally {
@@ -171,7 +191,10 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   // will be called automatically by the CDI container once the bean discovery has finished
   private void processMojoCdiProducerFields(@Observes AfterBeanDiscovery event, BeanManager beanManager)
       throws MojoExecutionException {
-    for (Field f : getClass().getDeclaredFields()) {
+    Set<Field> fields = Sets.newHashSet(getClass().getFields());
+    fields.addAll(Sets.newHashSet(getClass().getDeclaredFields()));
+
+    for (Field f : fields) {
       if (f.isAnnotationPresent(MojoProduces.class)) {
         try {
           f.setAccessible(true);
@@ -189,7 +212,10 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   private void processMojoCdiProducerMethods(@Observes AfterBeanDiscovery event, BeanManager beanManager)
       throws MojoExecutionException {
     // no method parameter injection possible at the moment since the container is not yet initialized at this point!
-    for (Method m : getClass().getDeclaredMethods()) {
+    Set<Method> methods = Sets.newHashSet(getClass().getMethods());
+    methods.addAll(Sets.newHashSet(getClass().getDeclaredMethods()));
+
+    for (Method m : methods) {
       if (m.getReturnType() != Void.class && m.isAnnotationPresent(MojoProduces.class)) {
         try {
           event.addBean(new CdiProducerBean(m, this, beanManager, m.getGenericReturnType(), m.getReturnType(),
@@ -241,6 +267,10 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
 
   private PluginDescriptor getPluginDescriptor() {
     return (PluginDescriptor) getPluginContext().get("pluginDescriptor");
+  }
+
+  private MavenProject getProject() {
+    return (MavenProject) getPluginContext().get("project");
   }
 
   private InputStream getWorkflowDescriptor() throws MojoExecutionException {
