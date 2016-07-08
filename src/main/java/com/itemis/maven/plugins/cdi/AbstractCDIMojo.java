@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,7 @@ import org.jboss.weld.environment.se.WeldContainer;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
@@ -52,6 +54,13 @@ import com.itemis.maven.plugins.cdi.internal.util.workflow.ProcessingWorkflow;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowExecutor;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowUtil;
 import com.itemis.maven.plugins.cdi.logging.MavenLogWrapper;
+
+import de.vandermeer.asciitable.v2.RenderedTable;
+import de.vandermeer.asciitable.v2.V2_AsciiTable;
+import de.vandermeer.asciitable.v2.render.V2_AsciiTableRenderer;
+import de.vandermeer.asciitable.v2.render.WidthLongestLine;
+import de.vandermeer.asciitable.v2.row.ContentRow;
+import de.vandermeer.asciitable.v2.themes.V2_E_TableThemes;
 
 /**
  * An abstract Mojo that enables CDI-based dependency injection for the current maven plugin.<br>
@@ -135,6 +144,7 @@ import com.itemis.maven.plugins.cdi.logging.MavenLogWrapper;
 public class AbstractCDIMojo extends AbstractMojo implements Extension {
   private static final String DEFAULT_WORKFLOW_DIR = "META-INF/workflows";
   private static final String SYSPROP_PRINT_WF = "printWorkflow";
+  private static final String SYSPROP_PRINT_STEPS = "printSteps";
 
   @Component
   protected ArtifactResolver _resolver;
@@ -184,10 +194,14 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     WeldContainer weldContainer = null;
     try {
       weldContainer = weld.initialize();
-      ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowDescriptor(), getGoalName());
-      WorkflowUtil.addExecutionContexts(workflow);
       Map<String, CDIMojoProcessingStep> steps = getAllProcessingSteps(weldContainer);
 
+      if (printAvailableSteps(steps)) {
+        return;
+      }
+
+      ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowDescriptor(), getGoalName());
+      WorkflowUtil.addExecutionContexts(workflow);
       WorkflowExecutor executor = new WorkflowExecutor(workflow, steps, getProject(), getLog());
       executor.validate(!this._settings.isOffline());
       executor.execute();
@@ -199,8 +213,7 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   }
 
   private boolean printDefaultWorkflow() throws MojoExecutionException {
-    String printWorkflow = System.getProperty(SYSPROP_PRINT_WF);
-    if (printWorkflow == null) {
+    if (System.getProperty(SYSPROP_PRINT_WF) == null) {
       return false;
     }
 
@@ -236,6 +249,39 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     }
 
     System.out.println(separator);
+    return true;
+  }
+
+  private boolean printAvailableSteps(Map<String, CDIMojoProcessingStep> steps) throws MojoExecutionException {
+    if (System.getProperty(SYSPROP_PRINT_STEPS) == null) {
+      return false;
+    }
+
+    V2_AsciiTable table = new V2_AsciiTable();
+    table.addRule();
+    ContentRow header = table.addRow("ID", "DESCRIPTION", "REQUIRES ONLINE");
+    header.setAlignment(new char[] { 'c', 'c', 'c' });
+    table.addStrongRule();
+
+    List<String> sortedIds = Lists.newArrayList(steps.keySet());
+    Collections.sort(sortedIds);
+    for (String id : sortedIds) {
+      ProcessingStep annotation = steps.get(id).getClass().getAnnotation(ProcessingStep.class);
+      ContentRow data = table.addRow(annotation.id(), annotation.description(), annotation.requiresOnline());
+      data.setAlignment(new char[] { 'l', 'l', 'c' });
+      table.addRule();
+    }
+
+    V2_AsciiTableRenderer renderer = new V2_AsciiTableRenderer();
+    renderer.setTheme(V2_E_TableThemes.UTF_STRONG_DOUBLE.get());
+    renderer.setWidth(new WidthLongestLine().add(10, 20).add(20, 50).add(10, 10));
+    RenderedTable renderedTable = renderer.render(table);
+
+    Log log = createLogWrapper();
+    log.info(
+        "The following processing steps are available on classpath and can be configured as part of a custom workflow.");
+    System.out.println(renderedTable);
+
     return true;
   }
 
