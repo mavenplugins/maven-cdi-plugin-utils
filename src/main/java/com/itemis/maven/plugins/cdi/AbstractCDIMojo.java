@@ -2,6 +2,7 @@ package com.itemis.maven.plugins.cdi;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -16,12 +17,14 @@ import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Extension;
 import javax.inject.Named;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.descriptor.MojoDescriptor;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
+import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
@@ -34,8 +37,11 @@ import org.jboss.weld.environment.se.WeldContainer;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Closeables;
 import com.itemis.maven.plugins.cdi.annotations.MojoProduces;
 import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
 import com.itemis.maven.plugins.cdi.internal.beans.CdiBeanWrapper;
@@ -128,6 +134,7 @@ import com.itemis.maven.plugins.cdi.logging.MavenLogWrapper;
  */
 public class AbstractCDIMojo extends AbstractMojo implements Extension {
   private static final String DEFAULT_WORKFLOW_DIR = "META-INF/workflows";
+  private static final String SYSPROP_PRINT_WF = "printWorkflow";
 
   @Component
   protected ArtifactResolver _resolver;
@@ -160,6 +167,10 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
 
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
+    if (printDefaultWorkflow()) {
+      return;
+    }
+
     System.setProperty("org.jboss.logging.provider", "slf4j");
     String logLevel = "info";
     if (getLog().isDebugEnabled()) {
@@ -185,6 +196,47 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
         weldContainer.shutdown();
       }
     }
+  }
+
+  private boolean printDefaultWorkflow() throws MojoExecutionException {
+    String printWorkflow = System.getProperty(SYSPROP_PRINT_WF);
+    if (printWorkflow == null) {
+      return false;
+    }
+
+    PluginDescriptor pluginDescriptor = getPluginDescriptor();
+    StringBuilder sb = new StringBuilder();
+    if (StringUtils.isNotBlank(pluginDescriptor.getGoalPrefix())) {
+      sb.append(pluginDescriptor.getGoalPrefix());
+    } else {
+      sb.append(pluginDescriptor.getGroupId()).append(':').append(pluginDescriptor.getArtifactId()).append(':')
+          .append(pluginDescriptor.getVersion());
+    }
+    sb.append(':').append(getGoalName());
+
+    Log log = createLogWrapper();
+    log.info("Default workflow for '" + sb + "':");
+
+    String goalName = getGoalName();
+    int x = 77 - goalName.length();
+    int a = x / 2;
+    int b = x % 2 == 1 ? a + 1 : a;
+    StringBuilder separator = new StringBuilder();
+    separator.append(Strings.repeat("=", a)).append(' ').append(goalName).append(' ').append(Strings.repeat("=", b));
+    System.out.println(separator);
+
+    InputStream in = null;
+    try {
+      in = getWorkflowDescriptor();
+      ByteStreams.copy(in, System.out);
+    } catch (IOException e) {
+      throw new MojoExecutionException("A problem occurred during the serialization of the defualt workflow.", e);
+    } finally {
+      Closeables.closeQuietly(in);
+    }
+
+    System.out.println(separator);
+    return true;
   }
 
   @SuppressWarnings("unused")
