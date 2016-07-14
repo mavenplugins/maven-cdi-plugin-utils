@@ -1,6 +1,4 @@
-# CDI Plugin Utilities
+Maven CDI Plugin Utilities: CDI-based Dependency Injection for Maven Plugin Development
+=======================================================================================
 
-This small library provides an abstract Mojo that enables CDI-based dependency injection capabilities for Maven plugins.
-The Mojo uses the standalone Weld libraries as the CDI implementation.
-
-... To be continued!
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.itemis.maven.plugins/cdi-plugin-utils/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.itemis.maven.plugins/cdi-plugin-utils)
