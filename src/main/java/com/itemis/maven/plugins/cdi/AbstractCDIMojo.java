@@ -147,19 +147,19 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   private static final String SYSPROP_PRINT_STEPS = "printSteps";
 
   @Component
-  protected ArtifactResolver _resolver;
+  private ArtifactResolver _resolver;
 
   @Parameter(defaultValue = "${settings}", readonly = true, required = true)
-  protected Settings _settings;
+  private Settings _settings;
 
   @Parameter(readonly = true, defaultValue = "${repositorySystemSession}")
-  protected RepositorySystemSession _repoSystemSession;
+  private RepositorySystemSession _repoSystemSession;
 
   @Parameter(readonly = true, defaultValue = "${project.remotePluginRepositories}")
-  protected List<RemoteRepository> _pluginRepos;
+  private List<RemoteRepository> _pluginRepos;
 
   @Parameter(property = "workflow")
-  protected File workflowDescriptor;
+  private File workflowDescriptor;
 
   @Parameter(defaultValue = "true", property = "enableLogTimestamps")
   @MojoProduces
@@ -167,7 +167,7 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   private boolean enableLogTimestamps;
 
   @MojoProduces
-  public MavenLogWrapper createLogWrapper() {
+  private MavenLogWrapper createLogWrapper() {
     MavenLogWrapper log = new MavenLogWrapper(getLog());
     if (this.enableLogTimestamps) {
       log.enableLogTimestamps();
@@ -176,7 +176,7 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   }
 
   @Override
-  public void execute() throws MojoExecutionException, MojoFailureException {
+  public final void execute() throws MojoExecutionException, MojoFailureException {
     if (printDefaultWorkflow()) {
       return;
     }
