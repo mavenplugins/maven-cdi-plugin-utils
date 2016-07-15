@@ -147,27 +147,27 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   private static final String SYSPROP_PRINT_STEPS = "printSteps";
 
   @Component
-  private ArtifactResolver _resolver;
+  public ArtifactResolver _resolver;
 
   @Parameter(defaultValue = "${settings}", readonly = true, required = true)
-  private Settings _settings;
+  public Settings _settings;
 
   @Parameter(readonly = true, defaultValue = "${repositorySystemSession}")
-  private RepositorySystemSession _repoSystemSession;
+  public RepositorySystemSession _repoSystemSession;
 
   @Parameter(readonly = true, defaultValue = "${project.remotePluginRepositories}")
-  private List<RemoteRepository> _pluginRepos;
+  public List<RemoteRepository> _pluginRepos;
 
   @Parameter(property = "workflow")
-  private File workflowDescriptor;
+  public File workflowDescriptor;
 
   @Parameter(defaultValue = "true", property = "enableLogTimestamps")
   @MojoProduces
   @Named("enableLogTimestamps")
-  private boolean enableLogTimestamps;
+  public boolean enableLogTimestamps;
 
   @MojoProduces
-  private MavenLogWrapper createLogWrapper() {
+  public final MavenLogWrapper createLogWrapper() {
     MavenLogWrapper log = new MavenLogWrapper(getLog());
     if (this.enableLogTimestamps) {
       log.enableLogTimestamps();
