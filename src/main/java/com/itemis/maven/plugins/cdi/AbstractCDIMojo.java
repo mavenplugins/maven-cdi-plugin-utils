@@ -372,13 +372,29 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   }
 
   private InputStream getWorkflowDescriptor() throws MojoExecutionException {
-    if (this.workflowDescriptor != null && this.workflowDescriptor.exists() && this.workflowDescriptor.isFile()) {
-      try {
-        return new FileInputStream(this.workflowDescriptor);
-      } catch (Exception e) {
-        throw new MojoExecutionException("Unable to load custom workflow for goal " + getGoalName(), e);
+    MavenLogWrapper log = createLogWrapper();
+    log.info("Constructing workflow for processing");
+
+    if (this.workflowDescriptor != null) {
+      log.debug("Requested overriding of workflow with file: " + this.workflowDescriptor.getAbsolutePath());
+
+      if (this.workflowDescriptor.exists() && this.workflowDescriptor.isFile()) {
+        try {
+          log.info("Workflow of goal '" + getPluginDescriptor().getGoalPrefix() + ':' + getGoalName()
+              + "' will be overriden by file '" + this.workflowDescriptor.getAbsolutePath() + "'.");
+          return new FileInputStream(this.workflowDescriptor);
+        } catch (Exception e) {
+          throw new MojoExecutionException("Unable to load custom workflow for goal " + getGoalName(), e);
+        }
+      } else {
+        throw new MojoExecutionException(
+            "Unable to load custom workflow for goal " + getPluginDescriptor().getGoalPrefix() + ':' + getGoalName()
+                + ". The workflow file '" + this.workflowDescriptor.getAbsolutePath() + "' does not exist!");
       }
     }
+
+    log.info("Goal '" + getPluginDescriptor().getGoalPrefix() + ':' + getGoalName()
+        + "' will use default workflow packaged with the plugin.");
     return Thread.currentThread().getContextClassLoader()
         .getResourceAsStream(DEFAULT_WORKFLOW_DIR + "/" + getGoalName());
   }
