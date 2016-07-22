@@ -230,25 +230,25 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     Log log = createLogWrapper();
     log.info("Default workflow for '" + sb + "':");
 
-    String goalName = getGoalName();
-    int x = 77 - goalName.length();
-    int a = x / 2;
-    int b = x % 2 == 1 ? a + 1 : a;
-    StringBuilder separator = new StringBuilder();
-    separator.append(Strings.repeat("=", a)).append(' ').append(goalName).append(' ').append(Strings.repeat("=", b));
-    System.out.println(separator);
-
     InputStream in = null;
     try {
       in = getWorkflowDescriptor();
+
+      String goalName = getGoalName();
+      int x = 77 - goalName.length();
+      int a = x / 2;
+      int b = x % 2 == 1 ? a + 1 : a;
+      StringBuilder separator = new StringBuilder();
+      separator.append(Strings.repeat("=", a)).append(' ').append(goalName).append(' ').append(Strings.repeat("=", b));
+
+      System.out.println(separator);
       ByteStreams.copy(in, System.out);
+      System.out.println(separator);
     } catch (IOException e) {
       throw new MojoExecutionException("A problem occurred during the serialization of the defualt workflow.", e);
     } finally {
       Closeables.closeQuietly(in);
     }
-
-    System.out.println(separator);
     return true;
   }
 
