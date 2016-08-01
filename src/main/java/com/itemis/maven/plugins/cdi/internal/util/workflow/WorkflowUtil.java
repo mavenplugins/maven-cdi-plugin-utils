@@ -49,7 +49,7 @@ public class WorkflowUtil {
       Builder parallelStepBuilder = null;
       while ((line = br.readLine()) != null) {
         line = line.trim();
-        if (line.startsWith(KW_COMMENT)) {
+        if (line.startsWith(KW_COMMENT) || Strings.isNullOrEmpty(line)) {
           continue;
         }
 
