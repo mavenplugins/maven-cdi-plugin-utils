@@ -1,13 +1,10 @@
 package com.itemis.maven.plugins.cdi;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,14 +16,12 @@ import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.ProcessAnnotatedType;
 import javax.inject.Named;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.descriptor.MojoDescriptor;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
-import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
@@ -39,12 +34,8 @@ import org.jboss.weld.environment.se.WeldContainer;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Closeables;
 import com.itemis.maven.plugins.cdi.annotations.MojoProduces;
 import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
 import com.itemis.maven.plugins.cdi.internal.beans.CdiBeanWrapper;
@@ -55,13 +46,6 @@ import com.itemis.maven.plugins.cdi.internal.util.workflow.ProcessingWorkflow;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowExecutor;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowUtil;
 import com.itemis.maven.plugins.cdi.logging.MavenLogWrapper;
-
-import de.vandermeer.asciitable.v2.RenderedTable;
-import de.vandermeer.asciitable.v2.V2_AsciiTable;
-import de.vandermeer.asciitable.v2.render.V2_AsciiTableRenderer;
-import de.vandermeer.asciitable.v2.render.WidthLongestLine;
-import de.vandermeer.asciitable.v2.row.ContentRow;
-import de.vandermeer.asciitable.v2.themes.V2_E_TableThemes;
 
 /**
  * An abstract Mojo that enables CDI-based dependency injection for the current maven plugin.<br>
@@ -143,7 +127,6 @@ import de.vandermeer.asciitable.v2.themes.V2_E_TableThemes;
  * @since 1.0.0
  */
 public class AbstractCDIMojo extends AbstractMojo implements Extension {
-  private static final String DEFAULT_WORKFLOW_DIR = "META-INF/workflows";
   private static final String SYSPROP_PRINT_WF = "printWorkflow";
   private static final String SYSPROP_PRINT_STEPS = "printSteps";
 
@@ -169,6 +152,8 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
 
   private ProcessingWorkflow workflow;
 
+  private Map<String, ProcessingStep> allAvailableProcessingSteps = Maps.newHashMap();
+
   @MojoProduces
   public final MavenLogWrapper createLogWrapper() {
     MavenLogWrapper log = new MavenLogWrapper(getLog());
@@ -180,7 +165,9 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
 
   @Override
   public final void execute() throws MojoExecutionException, MojoFailureException {
-    if (printDefaultWorkflow()) {
+    if (System.getProperty(SYSPROP_PRINT_WF) != null) {
+      WorkflowUtil.printWorkflow(getGoalName(), getPluginDescriptor(), Optional.fromNullable(this.workflowDescriptor),
+          createLogWrapper());
       return;
     }
 
@@ -197,14 +184,14 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     WeldContainer weldContainer = null;
     try {
       weldContainer = weld.initialize();
-      Map<String, CDIMojoProcessingStep> steps = getAllProcessingSteps(weldContainer);
-
-      if (printAvailableSteps(steps)) {
+      if (System.getProperty(SYSPROP_PRINT_STEPS) != null) {
+        WorkflowUtil.printAvailableSteps(this.allAvailableProcessingSteps, createLogWrapper());
         return;
       }
 
       WorkflowUtil.addExecutionContexts(getWorkflow());
-      WorkflowExecutor executor = new WorkflowExecutor(getWorkflow(), steps, getProject(), getLog());
+      Map<String, CDIMojoProcessingStep> processingSteps = getAllProcessingSteps(weldContainer);
+      WorkflowExecutor executor = new WorkflowExecutor(getWorkflow(), processingSteps, getProject(), getLog());
       executor.validate(!this._settings.isOffline());
       executor.execute();
     } finally {
@@ -216,82 +203,11 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
 
   private ProcessingWorkflow getWorkflow() throws MojoExecutionException {
     if (this.workflow == null) {
-      this.workflow = WorkflowUtil.parseWorkflow(getWorkflowDescriptor(), getGoalName());
+      InputStream wfDescriptor = WorkflowUtil.getWorkflowDescriptor(getGoalName(), getPluginDescriptor(),
+          Optional.fromNullable(this.workflowDescriptor), createLogWrapper());
+      this.workflow = WorkflowUtil.parseWorkflow(wfDescriptor, getGoalName());
     }
     return this.workflow;
-  }
-
-  private boolean printDefaultWorkflow() throws MojoExecutionException {
-    if (System.getProperty(SYSPROP_PRINT_WF) == null) {
-      return false;
-    }
-
-    PluginDescriptor pluginDescriptor = getPluginDescriptor();
-    StringBuilder sb = new StringBuilder();
-    if (StringUtils.isNotBlank(pluginDescriptor.getGoalPrefix())) {
-      sb.append(pluginDescriptor.getGoalPrefix());
-    } else {
-      sb.append(pluginDescriptor.getGroupId()).append(':').append(pluginDescriptor.getArtifactId()).append(':')
-          .append(pluginDescriptor.getVersion());
-    }
-    sb.append(':').append(getGoalName());
-
-    Log log = createLogWrapper();
-    log.info("Default workflow for '" + sb + "':");
-
-    InputStream in = null;
-    try {
-      in = getWorkflowDescriptor();
-
-      String goalName = getGoalName();
-      int x = 77 - goalName.length();
-      int a = x / 2;
-      int b = x % 2 == 1 ? a + 1 : a;
-      StringBuilder separator = new StringBuilder();
-      separator.append(Strings.repeat("=", a)).append(' ').append(goalName).append(' ').append(Strings.repeat("=", b));
-
-      System.out.println(separator);
-      ByteStreams.copy(in, System.out);
-      System.out.println(separator);
-    } catch (IOException e) {
-      throw new MojoExecutionException("A problem occurred during the serialization of the defualt workflow.", e);
-    } finally {
-      Closeables.closeQuietly(in);
-    }
-    return true;
-  }
-
-  private boolean printAvailableSteps(Map<String, CDIMojoProcessingStep> steps) throws MojoExecutionException {
-    if (System.getProperty(SYSPROP_PRINT_STEPS) == null) {
-      return false;
-    }
-
-    V2_AsciiTable table = new V2_AsciiTable();
-    table.addRule();
-    ContentRow header = table.addRow("ID", "DESCRIPTION", "REQUIRES ONLINE");
-    header.setAlignment(new char[] { 'c', 'c', 'c' });
-    table.addStrongRule();
-
-    List<String> sortedIds = Lists.newArrayList(steps.keySet());
-    Collections.sort(sortedIds);
-    for (String id : sortedIds) {
-      ProcessingStep annotation = steps.get(id).getClass().getAnnotation(ProcessingStep.class);
-      ContentRow data = table.addRow(annotation.id(), annotation.description(), annotation.requiresOnline());
-      data.setAlignment(new char[] { 'l', 'l', 'c' });
-      table.addRule();
-    }
-
-    V2_AsciiTableRenderer renderer = new V2_AsciiTableRenderer();
-    renderer.setTheme(V2_E_TableThemes.UTF_STRONG_DOUBLE.get());
-    renderer.setWidth(new WidthLongestLine().add(10, 20).add(20, 50).add(10, 10));
-    RenderedTable renderedTable = renderer.render(table);
-
-    Log log = createLogWrapper();
-    log.info(
-        "The following processing steps are available on classpath and can be configured as part of a custom workflow.");
-    System.out.println(renderedTable);
-
-    return true;
   }
 
   @SuppressWarnings("unused")
@@ -302,6 +218,14 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     Class<?> type = event.getAnnotatedType().getJavaClass();
     ProcessingStep annotation = type.getAnnotation(ProcessingStep.class);
     if (annotation != null) {
+      // adding the step to the list of all available processing steps
+      String id = annotation.id();
+      Preconditions.checkState(!this.allAvailableProcessingSteps.containsKey(id),
+          "The processing step id '" + id + "' is not unique!");
+      this.allAvailableProcessingSteps.put(id, annotation);
+
+      // vetoing the bean discovery of a step that is not part of the current workflow
+      // this prevents the issue that data shall be injected that isn't produced anywhere!
       ProcessingWorkflow workflow = getWorkflow();
       if (!workflow.containsStep(annotation.id())) {
         event.veto();
@@ -393,33 +317,5 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
 
   private MavenProject getProject() {
     return (MavenProject) getPluginContext().get("project");
-  }
-
-  private InputStream getWorkflowDescriptor() throws MojoExecutionException {
-    MavenLogWrapper log = createLogWrapper();
-    log.info("Constructing workflow for processing");
-
-    if (this.workflowDescriptor != null) {
-      log.debug("Requested overriding of workflow with file: " + this.workflowDescriptor.getAbsolutePath());
-
-      if (this.workflowDescriptor.exists() && this.workflowDescriptor.isFile()) {
-        try {
-          log.info("Workflow of goal '" + getPluginDescriptor().getGoalPrefix() + ':' + getGoalName()
-              + "' will be overriden by file '" + this.workflowDescriptor.getAbsolutePath() + "'.");
-          return new FileInputStream(this.workflowDescriptor);
-        } catch (Exception e) {
-          throw new MojoExecutionException("Unable to load custom workflow for goal " + getGoalName(), e);
-        }
-      } else {
-        throw new MojoExecutionException(
-            "Unable to load custom workflow for goal " + getPluginDescriptor().getGoalPrefix() + ':' + getGoalName()
-                + ". The workflow file '" + this.workflowDescriptor.getAbsolutePath() + "' does not exist!");
-      }
-    }
-
-    log.info("Goal '" + getPluginDescriptor().getGoalPrefix() + ':' + getGoalName()
-        + "' will use default workflow packaged with the plugin.");
-    return Thread.currentThread().getContextClassLoader()
-        .getResourceAsStream(DEFAULT_WORKFLOW_DIR + "/" + getGoalName());
   }
 }
