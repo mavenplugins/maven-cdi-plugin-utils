@@ -44,4 +44,13 @@ public class ProcessingWorkflow {
   public ExecutionContext getExecutionContext(String stepId) {
     return this.executionContexts.get(stepId);
   }
+
+  public boolean containsStep(String id) {
+    for (WorkflowStep step : this.steps) {
+      if (step.containsId(id)) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

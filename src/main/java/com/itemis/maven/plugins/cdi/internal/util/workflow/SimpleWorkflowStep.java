@@ -58,4 +58,9 @@ public class SimpleWorkflowStep implements WorkflowStep {
     }
     return false;
   }
+
+  @Override
+  public boolean containsId(String id) {
+    return Objects.equal(id, this.id);
+  }
 }

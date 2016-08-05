@@ -87,4 +87,14 @@ public class ParallelWorkflowStep implements WorkflowStep {
       return this.parallelStep;
     }
   }
+
+  @Override
+  public boolean containsId(String id) {
+    for (SimpleWorkflowStep step : this.steps) {
+      if (step.containsId(id)) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

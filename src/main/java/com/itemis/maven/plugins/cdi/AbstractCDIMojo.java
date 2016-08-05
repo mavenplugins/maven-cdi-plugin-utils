@@ -16,6 +16,7 @@ import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Extension;
+import javax.enterprise.inject.spi.ProcessAnnotatedType;
 import javax.inject.Named;
 
 import org.apache.commons.lang3.StringUtils;
@@ -166,6 +167,8 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   @Named("enableLogTimestamps")
   public boolean enableLogTimestamps;
 
+  private ProcessingWorkflow workflow;
+
   @MojoProduces
   public final MavenLogWrapper createLogWrapper() {
     MavenLogWrapper log = new MavenLogWrapper(getLog());
@@ -200,9 +203,8 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
         return;
       }
 
-      ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowDescriptor(), getGoalName());
-      WorkflowUtil.addExecutionContexts(workflow);
-      WorkflowExecutor executor = new WorkflowExecutor(workflow, steps, getProject(), getLog());
+      WorkflowUtil.addExecutionContexts(getWorkflow());
+      WorkflowExecutor executor = new WorkflowExecutor(getWorkflow(), steps, getProject(), getLog());
       executor.validate(!this._settings.isOffline());
       executor.execute();
     } finally {
@@ -210,6 +212,13 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
         weldContainer.shutdown();
       }
     }
+  }
+
+  private ProcessingWorkflow getWorkflow() throws MojoExecutionException {
+    if (this.workflow == null) {
+      this.workflow = WorkflowUtil.parseWorkflow(getWorkflowDescriptor(), getGoalName());
+    }
+    return this.workflow;
   }
 
   private boolean printDefaultWorkflow() throws MojoExecutionException {
@@ -283,6 +292,21 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     System.out.println(renderedTable);
 
     return true;
+  }
+
+  @SuppressWarnings("unused")
+  // will be called automatically by the CDI container for all annotated types
+  private void skipUnusedStepsFromBeanDiscovery(@Observes ProcessAnnotatedType<?> event, BeanManager beanManager)
+      throws MojoExecutionException {
+    // https://github.com/shillner/maven-cdi-plugin-utils/issues/14
+    Class<?> type = event.getAnnotatedType().getJavaClass();
+    ProcessingStep annotation = type.getAnnotation(ProcessingStep.class);
+    if (annotation != null) {
+      ProcessingWorkflow workflow = getWorkflow();
+      if (!workflow.containsStep(annotation.id())) {
+        event.veto();
+      }
+    }
   }
 
   @SuppressWarnings("unused")
