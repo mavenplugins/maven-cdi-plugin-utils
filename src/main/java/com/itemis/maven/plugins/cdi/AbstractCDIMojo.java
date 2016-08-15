@@ -16,10 +16,13 @@ import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.ProcessAnnotatedType;
 import javax.inject.Named;
 
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.PluginParameterExpressionEvaluator;
 import org.apache.maven.plugin.descriptor.MojoDescriptor;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Component;
@@ -131,24 +134,30 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   private static final String SYSPROP_PRINT_STEPS = "printSteps";
 
   @Component
-  public ArtifactResolver _resolver;
+  private ArtifactResolver _resolver;
 
   @Parameter(defaultValue = "${settings}", readonly = true, required = true)
-  public Settings _settings;
+  private Settings _settings;
 
   @Parameter(readonly = true, defaultValue = "${repositorySystemSession}")
-  public RepositorySystemSession _repoSystemSession;
+  private RepositorySystemSession _repoSystemSession;
 
   @Parameter(readonly = true, defaultValue = "${project.remotePluginRepositories}")
-  public List<RemoteRepository> _pluginRepos;
+  private List<RemoteRepository> _pluginRepos;
+
+  @Parameter(property = "mojoExecution", readonly = true)
+  private MojoExecution _mojoExecution;
+
+  @Parameter(property = "session", readonly = true)
+  private MavenSession _session;
 
   @Parameter(property = "workflow")
-  public File workflowDescriptor;
+  private File workflowDescriptor;
 
   @Parameter(defaultValue = "true", property = "enableLogTimestamps")
   @MojoProduces
   @Named("enableLogTimestamps")
-  public boolean enableLogTimestamps;
+  private boolean enableLogTimestamps;
 
   private ProcessingWorkflow workflow;
 
@@ -191,7 +200,10 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
 
       WorkflowUtil.addExecutionContexts(getWorkflow());
       Map<String, CDIMojoProcessingStep> processingSteps = getAllProcessingSteps(weldContainer);
-      WorkflowExecutor executor = new WorkflowExecutor(getWorkflow(), processingSteps, getProject(), getLog());
+
+      PluginParameterExpressionEvaluator expressionEvaluator = new PluginParameterExpressionEvaluator(this._session,
+          this._mojoExecution);
+      WorkflowExecutor executor = new WorkflowExecutor(getWorkflow(), processingSteps, getLog(), expressionEvaluator);
       executor.validate(!this._settings.isOffline());
       executor.execute();
     } finally {

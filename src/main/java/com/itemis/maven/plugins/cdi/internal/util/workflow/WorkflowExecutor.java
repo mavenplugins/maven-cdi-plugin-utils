@@ -17,8 +17,8 @@ import java.util.concurrent.Future;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.PluginParameterExpressionEvaluator;
 import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.project.MavenProject;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
@@ -41,14 +41,14 @@ public class WorkflowExecutor {
   private ProcessingWorkflow workflow;
   private Map<String, CDIMojoProcessingStep> processingSteps;
   private Stack<Pair<CDIMojoProcessingStep, ExecutionContext>> executedSteps;
-  private MavenProject project;
+  private PluginParameterExpressionEvaluator expressionEvaluator;
 
-  public WorkflowExecutor(ProcessingWorkflow workflow, Map<String, CDIMojoProcessingStep> processingSteps,
-      MavenProject project, Log log) {
+  public WorkflowExecutor(ProcessingWorkflow workflow, Map<String, CDIMojoProcessingStep> processingSteps, Log log,
+      PluginParameterExpressionEvaluator expressionEvaluator) {
     this.workflow = workflow;
     this.processingSteps = processingSteps;
-    this.project = project;
     this.log = log;
+    this.expressionEvaluator = expressionEvaluator;
   }
 
   /**
@@ -127,7 +127,7 @@ public class WorkflowExecutor {
     CDIMojoProcessingStep step = this.processingSteps.get(simpleWorkflowStep.getStepId());
     try {
       this.executedSteps.push(Pair.of(step, executionContext));
-      executionContext.expandProjectVariables(this.project);
+      executionContext.expandProjectVariables(this.expressionEvaluator);
       step.execute(executionContext);
     } catch (Throwable t) {
       rollback(t);
@@ -164,7 +164,7 @@ public class WorkflowExecutor {
             ExecutionContext executionContext = WorkflowExecutor.this.workflow
                 .getExecutionContext(simpleWorkflowStep.getCompositeStepId());
             WorkflowExecutor.this.executedSteps.push(Pair.of(step, executionContext));
-            executionContext.expandProjectVariables(WorkflowExecutor.this.project);
+            executionContext.expandProjectVariables(WorkflowExecutor.this.expressionEvaluator);
             step.execute(executionContext);
           } catch (Throwable t) {
             thrownExceptions.add(t);

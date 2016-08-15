@@ -6,7 +6,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.maven.project.MavenProject;
+import org.apache.maven.plugin.PluginParameterExpressionEvaluator;
+import org.codehaus.plexus.component.configurator.expression.ExpressionEvaluationException;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -99,20 +100,20 @@ public class ExecutionContext {
     return this.unmappedRollbackData;
   }
 
-  public void expandProjectVariables(MavenProject project) {
+  public void expandProjectVariables(PluginParameterExpressionEvaluator expressionEvaluator) {
     if (this.variablesExpanded) {
       return;
     }
-    expandUnmappedData(project);
-    expandMappedData(project);
+    expandUnmappedData(expressionEvaluator);
+    expandMappedData(expressionEvaluator);
     this.variablesExpanded = true;
   }
 
-  private void expandUnmappedData(MavenProject project) {
+  private void expandUnmappedData(PluginParameterExpressionEvaluator expressionEvaluator) {
     if (hasUnmappedData()) {
       List<String> newData = Lists.newArrayList();
       for (String date : this.unmappedData) {
-        newData.add(expand(date, project));
+        newData.add(expand(date, expressionEvaluator));
       }
       this.unmappedData = Iterables.unmodifiableIterable(newData);
     }
@@ -120,32 +121,37 @@ public class ExecutionContext {
     if (hasUnmappedRollbackData()) {
       List<String> newData = Lists.newArrayList();
       for (String date : this.unmappedRollbackData) {
-        newData.add(expand(date, project));
+        newData.add(expand(date, expressionEvaluator));
       }
       this.unmappedRollbackData = Iterables.unmodifiableIterable(newData);
     }
   }
 
-  private void expandMappedData(MavenProject project) {
+  private void expandMappedData(PluginParameterExpressionEvaluator expressionEvaluator) {
     if (hasMappedData()) {
       Map<String, String> newData = Maps.newHashMap();
       for (Entry<String, String> entry : this.mappedData.entrySet()) {
-        newData.put(entry.getKey(), expand(entry.getValue(), project));
+        newData.put(entry.getKey(), expand(entry.getValue(), expressionEvaluator));
       }
       this.mappedData = Collections.unmodifiableMap(this.mappedData);
     }
     if (hasMappedRollbackData()) {
       Map<String, String> newData = Maps.newHashMap();
       for (Entry<String, String> entry : this.mappedRollbackData.entrySet()) {
-        newData.put(entry.getKey(), expand(entry.getValue(), project));
+        newData.put(entry.getKey(), expand(entry.getValue(), expressionEvaluator));
       }
       this.mappedRollbackData = Collections.unmodifiableMap(this.mappedRollbackData);
     }
   }
 
-  private String expand(String s, MavenProject project) {
-    return s.replace(PROJ_VAR_GID, project.getGroupId()).replace(PROJ_VAR_AID, project.getArtifactId())
-        .replace(PROJ_VAR_VERSION, project.getVersion());
+  private String expand(String s, PluginParameterExpressionEvaluator expressionEvaluator) {
+    String var = s.replace("@{", "${");
+    try {
+      String evaluated = expressionEvaluator.evaluate(var).toString();
+      return evaluated;
+    } catch (ExpressionEvaluationException e) {
+      throw new RuntimeException(e.getMessage(), e);
+    }
   }
 
   public static class Builder {
