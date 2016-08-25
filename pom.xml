@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -10,7 +9,7 @@
 
   <groupId>com.itemis.maven.plugins</groupId>
   <artifactId>cdi-plugin-utils</artifactId>
-  <version>3.1.8-SNAPSHOT</version>
+  <version>3.1.8</version>
 
   <name>CDI Plugin Utilities</name>
   <description>Provides an abstract Mojo that enables CDI-based dependency injection for Maven Plugins.</description>
@@ -30,7 +29,7 @@
   <scm>
     <connection>scm:git:https://github.com/shillner/maven-cdi-plugin-utils.git</connection>
     <url>https://github.com/shillner/maven-cdi-plugin-utils</url>
-    <tag>HEAD</tag>
+    <tag>3.1.8</tag>
   </scm>
 
   <issueManagement>
