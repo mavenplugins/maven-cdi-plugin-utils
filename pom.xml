@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -37,6 +38,10 @@
     <url>https://github.com/shillner/maven-cdi-plugin-utils/issues</url>
   </issueManagement>
 
+  <prerequisites>
+    <maven>3.2.1</maven>
+  </prerequisites>
+
   <properties>
     <version.aether>1.0.2.v20150114</version.aether>
     <version.asciitable>0.2.5</version.asciitable>
@@ -45,7 +50,7 @@
     <version.java>1.6</version.java>
     <version.javax.inject>1</version.javax.inject>
     <version.junit>4.12</version.junit>
-    <version.maven>3.3.9</version.maven>
+    <version.maven>3.2.1</version.maven>
     <version.maven-plugin-plugin>3.4</version.maven-plugin-plugin>
     <version.slf4j-simple>1.7.21</version.slf4j-simple>
     <version.weld-se>2.3.3.Final</version.weld-se>
