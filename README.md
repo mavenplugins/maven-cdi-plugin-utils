@@ -31,7 +31,6 @@ The Core Concepts
    *   Qualifiers, Alternatives
    *   Producers
    *   @PostConstruct, @PreDestroy
-   *   Interceptors and decorators
    *   Events
 *   Classpath-based autowiring
    *   The plugin's classpath is automatically scanned for beans (plugin and plugin dependencies)
