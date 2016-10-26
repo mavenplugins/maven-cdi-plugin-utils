@@ -36,6 +36,9 @@ import com.itemis.maven.plugins.cdi.annotations.RollbackOnError;
  * @author <a href="mailto:stanley.hillner@itemis.de">Stanley Hillner</a>
  * @since 2.0.0
  */
+// TODO add debug logging while executing or rolling back the steps
+// TODO add workflow syntax validator
+// TODO log exceptions of failed workflow step executions and rollback executions
 public class WorkflowExecutor {
   private Log log;
   private ProcessingWorkflow workflow;
@@ -63,7 +66,9 @@ public class WorkflowExecutor {
    */
   public void validate(boolean isOnlineExecution) throws MojoExecutionException {
     Set<String> unknownIds = Sets.newHashSet();
-    for (WorkflowStep workflowStep : this.workflow.getProcessingSteps()) {
+    Iterable<WorkflowStep> stepsToCheck = Iterables
+        .unmodifiableIterable(Iterables.concat(this.workflow.getProcessingSteps(), this.workflow.getFinallySteps()));
+    for (WorkflowStep workflowStep : stepsToCheck) {
       if (workflowStep.isParallel()) {
         ParallelWorkflowStep parallelWorkflowStep = (ParallelWorkflowStep) workflowStep;
         for (SimpleWorkflowStep simpleWorkflowStep : parallelWorkflowStep.getSteps()) {
@@ -108,11 +113,28 @@ public class WorkflowExecutor {
    * @throws MojoFailureException if any of the processing steps of the workflow throw such an exception.
    */
   public void execute() throws MojoExecutionException, MojoFailureException {
+    this.log.info("Executing standard workflow for the goal");
     this.executedSteps = new Stack<Pair<CDIMojoProcessingStep, ExecutionContext>>();
 
-    for (WorkflowStep workflowStep : this.workflow.getProcessingSteps()) {
-      executeSequentialWorkflowStep(workflowStep);
-      executeParallelWorkflowSteps(workflowStep);
+    try {
+      for (WorkflowStep workflowStep : this.workflow.getProcessingSteps()) {
+        executeSequentialWorkflowStep(workflowStep);
+        executeParallelWorkflowSteps(workflowStep);
+      }
+    } catch (MojoExecutionException e) {
+      executeFinallySteps();
+    } catch (MojoFailureException e) {
+      executeFinallySteps();
+    } catch (RuntimeException e) {
+      executeFinallySteps();
+    }
+  }
+
+  private void executeFinallySteps() throws MojoExecutionException, MojoFailureException {
+    this.log.info("Executing finally workflow for the goal");
+    this.executedSteps.clear();
+    for (SimpleWorkflowStep step : this.workflow.getFinallySteps()) {
+      executeSequentialWorkflowStep(step);
     }
   }
 
@@ -201,6 +223,7 @@ public class WorkflowExecutor {
   }
 
   private void rollback(Throwable t) {
+    this.log.info("Rolling back after execution errors - please find the error messages and stack traces below.");
     while (!this.executedSteps.empty()) {
       Pair<CDIMojoProcessingStep, ExecutionContext> pair = this.executedSteps.pop();
       rollback(pair.getLeft(), pair.getRight(), t);

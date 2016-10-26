@@ -18,6 +18,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closeables;
@@ -49,10 +50,13 @@ public class WorkflowUtil {
   public static final String KW_DATA_ASSIGNMENT = "=";
   public static final String KW_DATA = "data";
   public static final String KW_ROLLBACK_DATA = "rollbackData";
+  public static final String KW_TRY = "try";
+  public static final String KW_FINALLY = "finally";
   public static final String CONTEXT_DATA_MAP_ASSIGNMENT = "=>";
   public static final String CONTEXT_DATA_SEPARATOR = ",";
-
   private static final String DEFAULT_WORKFLOW_DIR = "META-INF/workflows";
+
+  // TODO implement syntax validator for workflows!
 
   /**
    * Parses a workflow from its descriptor representation.
@@ -68,23 +72,39 @@ public class WorkflowUtil {
     // TODO rework parser! specify format and handle failures
     BufferedReader br = null;
     try {
-      br = new BufferedReader(new InputStreamReader(is));
-      String line;
       Builder parallelStepBuilder = null;
       SimpleWorkflowStep currentStep = null;
+      boolean isTryBlock = false;
+      boolean isFinallyBlock = false;
+
+      br = new BufferedReader(new InputStreamReader(is));
+      String line;
       while ((line = br.readLine()) != null) {
         line = line.trim();
         if (line.startsWith(KW_COMMENT) || Strings.isNullOrEmpty(line)) {
           continue;
         }
 
-        if (line.startsWith(KW_PARALLEL)) {
+        if (line.startsWith(KW_TRY)) {
+          isTryBlock = true;
+          isFinallyBlock = false;
+        } else if (line.startsWith(KW_PARALLEL)) {
           parallelStepBuilder = ParallelWorkflowStep.builder();
         } else if (Objects.equal(KW_BLOCK_CLOSE, line)) {
           if (currentStep != null) {
             currentStep = null;
+          } else if (isFinallyBlock) {
+            isFinallyBlock = false;
           } else if (parallelStepBuilder != null) {
             workflow.addProcessingStep(parallelStepBuilder.build());
+          }
+        } else if (line.startsWith(KW_BLOCK_CLOSE)) {
+          if (isTryBlock) {
+            isTryBlock = false;
+            String substring = line.substring(1).trim();
+            if (substring.startsWith(KW_FINALLY) && substring.endsWith(KW_BLOCK_OPEN)) {
+              isFinallyBlock = true;
+            }
           }
         } else {
           if (currentStep == null) {
@@ -94,10 +114,15 @@ public class WorkflowUtil {
             if (line.endsWith(KW_BLOCK_OPEN)) {
               currentStep = step;
             }
-            if (parallelStepBuilder == null) {
-              workflow.addProcessingStep(step);
+
+            if (isFinallyBlock) {
+              workflow.addFinallyStep(step);
             } else {
-              parallelStepBuilder.addSteps(step);
+              if (parallelStepBuilder == null) {
+                workflow.addProcessingStep(step);
+              } else {
+                parallelStepBuilder.addSteps(step);
+              }
             }
           } else {
             setDefaultExecutionData(currentStep, line);
@@ -153,7 +178,9 @@ public class WorkflowUtil {
   }
 
   public static void addExecutionContexts(ProcessingWorkflow workflow) {
-    for (WorkflowStep step : workflow.getProcessingSteps()) {
+    Iterable<WorkflowStep> steps = Iterables
+        .unmodifiableIterable(Iterables.concat(workflow.getProcessingSteps(), workflow.getFinallySteps()));
+    for (WorkflowStep step : steps) {
       if (step.isParallel()) {
         ParallelWorkflowStep parallelStep = (ParallelWorkflowStep) step;
         for (SimpleWorkflowStep simpleStep : parallelStep.getSteps()) {

@@ -1,0 +1,17 @@
+try {
+  step1[1] {
+    data = echo test
+    rollbackData = echo 123
+  }
+  parallel {
+    step2{
+      data=abc
+    }
+    step1[2]
+  }
+} finally {
+  step1[3]{
+    rollbackData=testRollback
+  }
+  step3
+}

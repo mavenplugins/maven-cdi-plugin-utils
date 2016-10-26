@@ -1,6 +1,8 @@
 package com.itemis.maven.plugins.cdi.util;
 
 import java.io.InputStream;
+import java.util.List;
+import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -16,7 +18,7 @@ public class WorkflowUtilTest {
 
   @Test
   public void testParseWorkflow_Sequential() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("wf1_sequential"), "wf1");
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("sequential"), "wf1");
 
     Assert.assertEquals("wf1", workflow.getGoal());
     for (WorkflowStep step : workflow.getProcessingSteps()) {
@@ -32,9 +34,9 @@ public class WorkflowUtilTest {
 
   @Test
   public void testParseWorkflow_Parallel() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("wf1_parallel"), "wf1");
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("parallel"), "wf2");
 
-    Assert.assertEquals("wf1", workflow.getGoal());
+    Assert.assertEquals("wf2", workflow.getGoal());
     // The first step is a parallel step
     WorkflowStep parallelStep = workflow.getProcessingSteps().get(0);
     Assert.assertTrue("The first processing step should be a parallel one.", parallelStep.isParallel());
@@ -52,9 +54,9 @@ public class WorkflowUtilTest {
 
   @Test
   public void testParseWorkflow_Sequential_Qualifiers() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("wf2_sequential_qualifiers"), "wf2");
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("sequential_qualifiers"), "wf3");
 
-    Assert.assertEquals("wf2", workflow.getGoal());
+    Assert.assertEquals("wf3", workflow.getGoal());
     for (WorkflowStep step : workflow.getProcessingSteps()) {
       Assert.assertEquals("Workflow step of wrong type", SimpleWorkflowStep.class, step.getClass());
       SimpleWorkflowStep s = (SimpleWorkflowStep) step;
@@ -69,9 +71,9 @@ public class WorkflowUtilTest {
 
   @Test
   public void testParseWorkflow_Sequential_Data() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("wf1_sequential_data"), "wf1");
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("sequential_data"), "wf4");
 
-    Assert.assertEquals("wf1", workflow.getGoal());
+    Assert.assertEquals("wf4", workflow.getGoal());
     for (WorkflowStep step : workflow.getProcessingSteps()) {
       SimpleWorkflowStep s = (SimpleWorkflowStep) step;
       if ("check3".equals(s.getStepId())) {
@@ -93,9 +95,9 @@ public class WorkflowUtilTest {
 
   @Test
   public void testParseWorkflow_Parallel_Data() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("wf1_parallel_data"), "wf1");
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("parallel_data"), "wf5");
 
-    Assert.assertEquals("wf1", workflow.getGoal());
+    Assert.assertEquals("wf5", workflow.getGoal());
     // The first step is a parallel step
     WorkflowStep parallelStep = workflow.getProcessingSteps().get(0);
     Assert.assertTrue("The first processing step should be a parallel one.", parallelStep.isParallel());
@@ -129,6 +131,79 @@ public class WorkflowUtilTest {
             "a=>1   ,b=>2", step.getDefaultRollbackData().get());
       }
     }
+  }
+
+  @Test
+  public void testParseWorkflow_TryFinally() {
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("try-finally"), "wf6");
+
+    Assert.assertEquals("wf6", workflow.getGoal());
+    List<WorkflowStep> trySteps = workflow.getProcessingSteps();
+    Assert.assertEquals("Expected the standard workflow to have exactly 3 processing steps.", 3, trySteps.size());
+    Assert.assertEquals("step1[1]", ((SimpleWorkflowStep) trySteps.get(0)).getCompositeStepId());
+    Assert.assertEquals("step2", ((SimpleWorkflowStep) trySteps.get(1)).getCompositeStepId());
+    Assert.assertEquals("step1[2]", ((SimpleWorkflowStep) trySteps.get(2)).getCompositeStepId());
+
+    List<SimpleWorkflowStep> finallySteps = workflow.getFinallySteps();
+    Assert.assertEquals("Expected the finally workflow to have exactly 2 processing steps.", 2, finallySteps.size());
+    Assert.assertEquals("step1[3]", finallySteps.get(0).getCompositeStepId());
+    Assert.assertEquals("step3", finallySteps.get(1).getCompositeStepId());
+  }
+
+  @Test
+  public void testParseWorkflow_TryFinally_Complex() {
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("try-finally_complex"), "wf7");
+
+    Assert.assertEquals("wf7", workflow.getGoal());
+    List<WorkflowStep> trySteps = workflow.getProcessingSteps();
+    Assert.assertEquals("Expected the standard workflow to have exactly 2 processing steps.", 2, trySteps.size());
+
+    Assert.assertFalse("Expected a sequential step as the first one.", trySteps.get(0).isParallel());
+    SimpleWorkflowStep step1 = (SimpleWorkflowStep) trySteps.get(0);
+    Assert.assertEquals("step1[1]", step1.getCompositeStepId());
+    Assert.assertTrue("Step 1 should have default execution data assigned.",
+        step1.getDefaultExecutionData().isPresent());
+    Assert.assertEquals("echo test", step1.getDefaultExecutionData().get());
+    Assert.assertTrue("Step 1 should have default rollback data assigned.", step1.getDefaultRollbackData().isPresent());
+    Assert.assertEquals("echo 123", step1.getDefaultRollbackData().get());
+
+    Assert.assertTrue("Expected a parallel step as the second one.", trySteps.get(1).isParallel());
+    ParallelWorkflowStep step2 = (ParallelWorkflowStep) trySteps.get(1);
+    Set<SimpleWorkflowStep> parallelSteps = step2.getSteps();
+    Assert.assertEquals("Expected two steps to be executed in parallel.", 2, parallelSteps.size());
+
+    for (SimpleWorkflowStep step : parallelSteps) {
+      Assert.assertTrue("step2".equals(step.getCompositeStepId()) || "step1[2]".equals(step.getCompositeStepId()));
+      if ("step2".equals(step.getCompositeStepId())) {
+        Assert.assertTrue("The first parallel step should have default execution data assigned.",
+            step.getDefaultExecutionData().isPresent());
+        Assert.assertEquals("abc", step.getDefaultExecutionData().get());
+        Assert.assertFalse("The first parallel step should not have default rollback data assigned.",
+            step.getDefaultRollbackData().isPresent());
+      } else {
+        Assert.assertFalse("The second parallel step should not have default execution data assigned.",
+            step.getDefaultExecutionData().isPresent());
+        Assert.assertFalse("The second parallel step should not have default rollback data assigned.",
+            step.getDefaultRollbackData().isPresent());
+      }
+    }
+
+    List<SimpleWorkflowStep> finallySteps = workflow.getFinallySteps();
+    Assert.assertEquals("Expected the finally workflow to have exactly 2 processing steps.", 2, finallySteps.size());
+
+    SimpleWorkflowStep fStep1 = finallySteps.get(0);
+    Assert.assertEquals("step1[3]", fStep1.getCompositeStepId());
+    Assert.assertFalse("The first finally step should not have default execution data assigned.",
+        fStep1.getDefaultExecutionData().isPresent());
+    Assert.assertTrue("The first finally step should have default rollback data assigned.",
+        fStep1.getDefaultRollbackData().isPresent());
+
+    SimpleWorkflowStep fStep2 = finallySteps.get(1);
+    Assert.assertEquals("step3", fStep2.getCompositeStepId());
+    Assert.assertFalse("The first finally step should not have default execution data assigned.",
+        fStep2.getDefaultExecutionData().isPresent());
+    Assert.assertFalse("The first finally step should not have default rollback data assigned.",
+        fStep2.getDefaultRollbackData().isPresent());
   }
 
   private InputStream getWorkflowAsStream(String name) {
