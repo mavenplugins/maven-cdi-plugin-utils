@@ -46,6 +46,9 @@ public class WorkflowUtil {
   public static final String KW_BLOCK_CLOSE = "}";
   public static final String KW_QUALIFIER_OPEN = "[";
   public static final String KW_QUALIFIER_CLOSE = "]";
+  public static final String KW_DATA_ASSIGNMENT = "=";
+  public static final String KW_DATA = "data";
+  public static final String KW_ROLLBACK_DATA = "rollbackData";
   public static final String CONTEXT_DATA_MAP_ASSIGNMENT = "=>";
   public static final String CONTEXT_DATA_SEPARATOR = ",";
 
@@ -68,6 +71,7 @@ public class WorkflowUtil {
       br = new BufferedReader(new InputStreamReader(is));
       String line;
       Builder parallelStepBuilder = null;
+      SimpleWorkflowStep currentStep = null;
       while ((line = br.readLine()) != null) {
         line = line.trim();
         if (line.startsWith(KW_COMMENT) || Strings.isNullOrEmpty(line)) {
@@ -76,24 +80,28 @@ public class WorkflowUtil {
 
         if (line.startsWith(KW_PARALLEL)) {
           parallelStepBuilder = ParallelWorkflowStep.builder();
-        } else if (Objects.equal(KW_BLOCK_CLOSE, line) && parallelStepBuilder != null) {
-          workflow.addProcessingStep(parallelStepBuilder.build());
-        } else {
-          int qualifierOpen = line.indexOf(KW_QUALIFIER_OPEN);
-          SimpleWorkflowStep step;
-          if (qualifierOpen > -1) {
-            String id = line.substring(0, qualifierOpen);
-            int qualifierClose = line.indexOf(KW_QUALIFIER_CLOSE, qualifierOpen);
-            Optional<String> qualifier = Optional.of(line.substring(qualifierOpen + 1, qualifierClose));
-            step = new SimpleWorkflowStep(id, qualifier);
-          } else {
-            step = new SimpleWorkflowStep(line, Optional.<String> absent());
+        } else if (Objects.equal(KW_BLOCK_CLOSE, line)) {
+          if (currentStep != null) {
+            currentStep = null;
+          } else if (parallelStepBuilder != null) {
+            workflow.addProcessingStep(parallelStepBuilder.build());
           }
-
-          if (parallelStepBuilder == null) {
-            workflow.addProcessingStep(step);
+        } else {
+          if (currentStep == null) {
+            String id = parseId(line);
+            Optional<String> qualifier = parseQualifier(line);
+            SimpleWorkflowStep step = new SimpleWorkflowStep(id, qualifier);
+            if (line.endsWith(KW_BLOCK_OPEN)) {
+              currentStep = step;
+            }
+            if (parallelStepBuilder == null) {
+              workflow.addProcessingStep(step);
+            } else {
+              parallelStepBuilder.addSteps(step);
+            }
           } else {
-            parallelStepBuilder.addSteps(step);
+            setDefaultExecutionData(currentStep, line);
+            setDefaultRollbackData(currentStep, line);
           }
         }
       }
@@ -104,6 +112,44 @@ public class WorkflowUtil {
     }
 
     return workflow;
+  }
+
+  private static String parseId(String line) {
+    int qualifierOpen = line.indexOf(KW_QUALIFIER_OPEN);
+    int blockOpen = line.indexOf(KW_BLOCK_OPEN);
+    int toIndex;
+    if (qualifierOpen > -1) {
+      toIndex = qualifierOpen;
+    } else if (blockOpen > -1) {
+      toIndex = blockOpen;
+    } else {
+      toIndex = line.length();
+    }
+    return line.substring(0, toIndex).trim();
+  }
+
+  private static Optional<String> parseQualifier(String line) {
+    String qualifier = null;
+    int qualifierOpen = line.indexOf(KW_QUALIFIER_OPEN);
+    if (qualifierOpen > -1) {
+      int qualifierClose = line.indexOf(KW_QUALIFIER_CLOSE, qualifierOpen);
+      qualifier = line.substring(qualifierOpen + 1, qualifierClose);
+    }
+    return Optional.fromNullable(qualifier);
+  }
+
+  private static void setDefaultExecutionData(SimpleWorkflowStep step, String line) {
+    if (line.startsWith(KW_DATA)) {
+      int startIndex = line.indexOf(KW_DATA_ASSIGNMENT) + 1;
+      step.setDefaultExecutionData(line.substring(startIndex).trim());
+    }
+  }
+
+  private static void setDefaultRollbackData(SimpleWorkflowStep step, String line) {
+    if (line.startsWith(KW_ROLLBACK_DATA)) {
+      int startIndex = line.indexOf(KW_DATA_ASSIGNMENT) + 1;
+      step.setDefaultRollbackData(line.substring(startIndex).trim());
+    }
   }
 
   public static void addExecutionContexts(ProcessingWorkflow workflow) {
@@ -127,6 +173,9 @@ public class WorkflowUtil {
     }
 
     String dataPropertyValue = System.getProperty(step.getCompositeStepId());
+    if (dataPropertyValue == null) {
+      dataPropertyValue = step.getDefaultExecutionData().orNull();
+    }
     if (dataPropertyValue != null) {
       Iterable<String> split = Splitter.on(CONTEXT_DATA_SEPARATOR).split(dataPropertyValue);
       for (String token : split) {
@@ -143,6 +192,9 @@ public class WorkflowUtil {
     }
 
     String dataRollbackPropertyValue = System.getProperty(step.getCompositeStepId() + "-rollback");
+    if (dataRollbackPropertyValue == null) {
+      dataRollbackPropertyValue = step.getDefaultRollbackData().orNull();
+    }
     if (dataRollbackPropertyValue != null) {
       Iterable<String> split = Splitter.on(CONTEXT_DATA_SEPARATOR).split(dataRollbackPropertyValue);
       for (String token : split) {

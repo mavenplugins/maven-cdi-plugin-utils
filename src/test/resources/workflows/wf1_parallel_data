@@ -1,0 +1,14 @@
+parallel {
+  check1{
+    data = test
+  }
+  check2[x]
+  check2[y]{
+    data=xyz,   test=>123   
+    rollbackData =a=>1   ,b=>2
+  }
+  check3
+}
+perform1
+perform2
+verify

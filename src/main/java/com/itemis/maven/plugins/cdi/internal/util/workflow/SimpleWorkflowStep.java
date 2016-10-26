@@ -12,12 +12,16 @@ import com.google.common.base.Optional;
  * @since 2.1.0
  */
 public class SimpleWorkflowStep implements WorkflowStep {
-  String id;
-  Optional<String> qualifier;
+  private String id;
+  private Optional<String> qualifier;
+  private Optional<String> defaultExecutionData;
+  private Optional<String> defaultRollbackData;
 
   public SimpleWorkflowStep(String id, Optional<String> qualifier) {
     this.id = id;
     this.qualifier = qualifier;
+    this.defaultExecutionData = Optional.absent();
+    this.defaultRollbackData = Optional.absent();
   }
 
   @Override
@@ -37,11 +41,29 @@ public class SimpleWorkflowStep implements WorkflowStep {
     return this.id + (this.qualifier.isPresent() ? "[" + this.qualifier.get() + "]" : "");
   }
 
+  public void setDefaultExecutionData(String data) {
+    this.defaultExecutionData = Optional.fromNullable(data);
+  }
+
+  public Optional<String> getDefaultExecutionData() {
+    return this.defaultExecutionData;
+  }
+
+  public void setDefaultRollbackData(String data) {
+    this.defaultRollbackData = Optional.fromNullable(data);
+  }
+
+  public Optional<String> getDefaultRollbackData() {
+    return this.defaultRollbackData;
+  }
+
   @Override
   public String toString() {
     ToStringHelper toStringHelper = MoreObjects.toStringHelper(this);
     toStringHelper.add("id", this.id);
     toStringHelper.add("qualifier", this.qualifier.or("---"));
+    toStringHelper.add("defaultExecutionData", this.defaultExecutionData.or("---"));
+    toStringHelper.add("defaultRollbackData", this.defaultRollbackData.or("---"));
     return toStringHelper.toString();
   }
 

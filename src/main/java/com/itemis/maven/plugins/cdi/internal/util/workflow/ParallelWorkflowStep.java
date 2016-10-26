@@ -6,7 +6,6 @@ import java.util.Set;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
@@ -74,12 +73,6 @@ public class ParallelWorkflowStep implements WorkflowStep {
       for (SimpleWorkflowStep step : steps) {
         this.parallelStep.steps.add(step);
       }
-      return this;
-    }
-
-    public Builder addStep(String id, Optional<String> qualifier) {
-      SimpleWorkflowStep step = new SimpleWorkflowStep(id, qualifier);
-      this.parallelStep.steps.add(step);
       return this;
     }
 
