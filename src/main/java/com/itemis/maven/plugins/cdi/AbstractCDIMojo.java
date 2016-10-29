@@ -48,6 +48,7 @@ import com.itemis.maven.plugins.cdi.internal.util.MavenUtil;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.ProcessingWorkflow;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowExecutor;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowUtil;
+import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowValidator;
 import com.itemis.maven.plugins.cdi.logging.MavenLogWrapper;
 
 /**
@@ -213,9 +214,18 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
     }
   }
 
-  private ProcessingWorkflow getWorkflow() throws MojoExecutionException {
+  private ProcessingWorkflow getWorkflow() throws MojoExecutionException, MojoFailureException {
     if (this.workflow == null) {
       InputStream wfDescriptor = WorkflowUtil.getWorkflowDescriptor(getGoalName(), getPluginDescriptor(),
+          Optional.fromNullable(this.workflowDescriptor), createLogWrapper());
+
+      try {
+        WorkflowValidator.validateSyntactically(wfDescriptor);
+      } catch (RuntimeException e) {
+        throw new MojoFailureException(e.getMessage());
+      }
+
+      wfDescriptor = WorkflowUtil.getWorkflowDescriptor(getGoalName(), getPluginDescriptor(),
           Optional.fromNullable(this.workflowDescriptor), createLogWrapper());
       this.workflow = WorkflowUtil.parseWorkflow(wfDescriptor, getGoalName());
     }
@@ -225,7 +235,7 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
   @SuppressWarnings("unused")
   // will be called automatically by the CDI container for all annotated types
   private void skipUnusedStepsFromBeanDiscovery(@Observes ProcessAnnotatedType<?> event, BeanManager beanManager)
-      throws MojoExecutionException {
+      throws MojoExecutionException, MojoFailureException {
     // https://github.com/shillner/maven-cdi-plugin-utils/issues/14
     Class<?> type = event.getAnnotatedType().getJavaClass();
     ProcessingStep annotation = type.getAnnotation(ProcessingStep.class);

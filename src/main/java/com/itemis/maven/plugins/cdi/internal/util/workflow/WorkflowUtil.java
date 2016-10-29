@@ -41,22 +41,10 @@ import de.vandermeer.asciitable.v2.themes.V2_E_TableThemes;
  * @since 2.0.0
  */
 public class WorkflowUtil {
-  public static final String KW_COMMENT = "#";
-  public static final String KW_PARALLEL = "parallel";
-  public static final String KW_BLOCK_OPEN = "{";
-  public static final String KW_BLOCK_CLOSE = "}";
-  public static final String KW_QUALIFIER_OPEN = "[";
-  public static final String KW_QUALIFIER_CLOSE = "]";
-  public static final String KW_DATA_ASSIGNMENT = "=";
-  public static final String KW_DATA = "data";
-  public static final String KW_ROLLBACK_DATA = "rollbackData";
-  public static final String KW_TRY = "try";
-  public static final String KW_FINALLY = "finally";
+
   public static final String CONTEXT_DATA_MAP_ASSIGNMENT = "=>";
   public static final String CONTEXT_DATA_SEPARATOR = ",";
   private static final String DEFAULT_WORKFLOW_DIR = "META-INF/workflows";
-
-  // TODO implement syntax validator for workflows!
 
   /**
    * Parses a workflow from its descriptor representation.
@@ -66,10 +54,10 @@ public class WorkflowUtil {
    * @param goalName the name of the goal this workflow is designed for.
    * @return the parsed processing workflow.
    */
+  // TODO rework parser! -> too many decision branches!
   public static ProcessingWorkflow parseWorkflow(InputStream is, String goalName) {
     ProcessingWorkflow workflow = new ProcessingWorkflow(goalName);
 
-    // TODO rework parser! specify format and handle failures
     BufferedReader br = null;
     try {
       Builder parallelStepBuilder = null;
@@ -81,16 +69,16 @@ public class WorkflowUtil {
       String line;
       while ((line = br.readLine()) != null) {
         line = line.trim();
-        if (line.startsWith(KW_COMMENT) || Strings.isNullOrEmpty(line)) {
+        if (line.startsWith(WorkflowConstants.KW_COMMENT) || line.isEmpty()) {
           continue;
         }
 
-        if (line.startsWith(KW_TRY)) {
+        if (line.startsWith(WorkflowConstants.KW_TRY)) {
           isTryBlock = true;
           isFinallyBlock = false;
-        } else if (line.startsWith(KW_PARALLEL)) {
+        } else if (line.startsWith(WorkflowConstants.KW_PARALLEL)) {
           parallelStepBuilder = ParallelWorkflowStep.builder();
-        } else if (Objects.equal(KW_BLOCK_CLOSE, line)) {
+        } else if (Objects.equal(WorkflowConstants.KW_BLOCK_CLOSE, line)) {
           if (currentStep != null) {
             currentStep = null;
           } else if (isFinallyBlock) {
@@ -98,11 +86,12 @@ public class WorkflowUtil {
           } else if (parallelStepBuilder != null) {
             workflow.addProcessingStep(parallelStepBuilder.build());
           }
-        } else if (line.startsWith(KW_BLOCK_CLOSE)) {
+        } else if (line.startsWith(WorkflowConstants.KW_BLOCK_CLOSE)) {
           if (isTryBlock) {
             isTryBlock = false;
             String substring = line.substring(1).trim();
-            if (substring.startsWith(KW_FINALLY) && substring.endsWith(KW_BLOCK_OPEN)) {
+            if (substring.startsWith(WorkflowConstants.KW_FINALLY)
+                && substring.endsWith(WorkflowConstants.KW_BLOCK_OPEN)) {
               isFinallyBlock = true;
             }
           }
@@ -111,7 +100,7 @@ public class WorkflowUtil {
             String id = parseId(line);
             Optional<String> qualifier = parseQualifier(line);
             SimpleWorkflowStep step = new SimpleWorkflowStep(id, qualifier);
-            if (line.endsWith(KW_BLOCK_OPEN)) {
+            if (line.endsWith(WorkflowConstants.KW_BLOCK_OPEN)) {
               currentStep = step;
             }
 
@@ -140,8 +129,8 @@ public class WorkflowUtil {
   }
 
   private static String parseId(String line) {
-    int qualifierOpen = line.indexOf(KW_QUALIFIER_OPEN);
-    int blockOpen = line.indexOf(KW_BLOCK_OPEN);
+    int qualifierOpen = line.indexOf(WorkflowConstants.KW_QUALIFIER_OPEN);
+    int blockOpen = line.indexOf(WorkflowConstants.KW_BLOCK_OPEN);
     int toIndex;
     if (qualifierOpen > -1) {
       toIndex = qualifierOpen;
@@ -155,24 +144,24 @@ public class WorkflowUtil {
 
   private static Optional<String> parseQualifier(String line) {
     String qualifier = null;
-    int qualifierOpen = line.indexOf(KW_QUALIFIER_OPEN);
+    int qualifierOpen = line.indexOf(WorkflowConstants.KW_QUALIFIER_OPEN);
     if (qualifierOpen > -1) {
-      int qualifierClose = line.indexOf(KW_QUALIFIER_CLOSE, qualifierOpen);
+      int qualifierClose = line.indexOf(WorkflowConstants.KW_QUALIFIER_CLOSE, qualifierOpen);
       qualifier = line.substring(qualifierOpen + 1, qualifierClose);
     }
     return Optional.fromNullable(qualifier);
   }
 
   private static void setDefaultExecutionData(SimpleWorkflowStep step, String line) {
-    if (line.startsWith(KW_DATA)) {
-      int startIndex = line.indexOf(KW_DATA_ASSIGNMENT) + 1;
+    if (line.startsWith(WorkflowConstants.KW_DATA)) {
+      int startIndex = line.indexOf(WorkflowConstants.KW_DATA_ASSIGNMENT) + 1;
       step.setDefaultExecutionData(line.substring(startIndex).trim());
     }
   }
 
   private static void setDefaultRollbackData(SimpleWorkflowStep step, String line) {
-    if (line.startsWith(KW_ROLLBACK_DATA)) {
-      int startIndex = line.indexOf(KW_DATA_ASSIGNMENT) + 1;
+    if (line.startsWith(WorkflowConstants.KW_ROLLBACK_DATA)) {
+      int startIndex = line.indexOf(WorkflowConstants.KW_DATA_ASSIGNMENT) + 1;
       step.setDefaultRollbackData(line.substring(startIndex).trim());
     }
   }
