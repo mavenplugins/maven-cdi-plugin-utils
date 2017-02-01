@@ -2,6 +2,7 @@ package com.itemis.maven.plugins.cdi.internal.util.workflow;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -241,7 +242,7 @@ public class WorkflowExecutor {
   private void rollback(CDIMojoProcessingStep step, ExecutionContext executionContext, Throwable t) {
     // get rollback methods and sort alphabetically
     List<Method> rollbackMethods = getRollbackMethods(step, t.getClass());
-    rollbackMethods.sort(new Comparator<Method>() {
+    Collections.sort(rollbackMethods, new Comparator<Method>() {
       @Override
       public int compare(Method m1, Method m2) {
         return m1.getName().compareTo(m2.getName());

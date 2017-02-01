@@ -68,17 +68,17 @@ public class CdiProducerBean<T> implements Bean<T> {
   @Override
   public T create(CreationalContext<T> creationalContext) {
     Object[] params = new Object[0];
-    java.lang.reflect.Parameter[] parameters = this.method.getParameters();
-    params = new Object[parameters.length];
-    for (int i = 0; i < parameters.length; i++) {
-      java.lang.reflect.Parameter p = parameters[i];
-      Set<Annotation> qualifiers = getCdiQualifiers(p);
+    Class<?>[] parameterTypes = this.method.getParameterTypes();
+    Annotation[][] parameterAnnotations = this.method.getParameterAnnotations();
+    params = new Object[parameterTypes.length];
+    for (int i = 0; i < parameterTypes.length; i++) {
+      Set<Annotation> qualifiers = getCdiQualifiers(parameterAnnotations[i]);
 
-      Set<Bean<?>> beans = this.beanManager.getBeans(p.getType(),
-          qualifiers.toArray(new Annotation[qualifiers.size()]));
+      Class<?> paramType = parameterTypes[i];
+      Set<Bean<?>> beans = this.beanManager.getBeans(paramType, qualifiers.toArray(new Annotation[qualifiers.size()]));
       if (beans.size() == 1) {
         Bean<?> bean = Iterables.get(beans, 0);
-        Object reference = this.beanManager.getReference(bean, p.getType(),
+        Object reference = this.beanManager.getReference(bean, paramType,
             this.beanManager.createCreationalContext(bean));
         params[i] = reference;
       } else {
@@ -145,9 +145,9 @@ public class CdiProducerBean<T> implements Bean<T> {
     return true;
   }
 
-  private Set<Annotation> getCdiQualifiers(java.lang.reflect.Parameter p) {
+  private Set<Annotation> getCdiQualifiers(Annotation[] annotattions) {
     Set<Annotation> qualifiers = Sets.newHashSet();
-    for (Annotation annotation : p.getAnnotations()) {
+    for (Annotation annotation : annotattions) {
       if (annotation.annotationType().isAnnotationPresent(Qualifier.class)) {
         qualifiers.add(annotation);
       }
