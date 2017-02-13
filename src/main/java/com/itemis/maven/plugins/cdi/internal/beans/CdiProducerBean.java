@@ -2,6 +2,7 @@ package com.itemis.maven.plugins.cdi.internal.beans;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.Set;
@@ -39,13 +40,18 @@ public class CdiProducerBean<T> implements Bean<T> {
 
   private Set<Type> calcBeanTypes(Type implTpye) {
     Set<Type> beanTypes = Sets.newHashSet();
-    Typed typedAnnotation = ((Class<?>) implTpye).getAnnotation(Typed.class);
-    if (typedAnnotation != null) {
-      for (Class<?> cls : typedAnnotation.value()) {
-        beanTypes.add(cls);
-      }
+
+    if (implTpye instanceof ParameterizedType) {
+      beanTypes.add((ParameterizedType) implTpye);
     } else {
-      beanTypes.addAll(getTypeClasses((Class<?>) implTpye));
+      Typed typedAnnotation = ((Class<?>) implTpye).getAnnotation(Typed.class);
+      if (typedAnnotation != null) {
+        for (Class<?> cls : typedAnnotation.value()) {
+          beanTypes.add(cls);
+        }
+      } else {
+        beanTypes.addAll(getTypeClasses((Class<?>) implTpye));
+      }
     }
     return beanTypes;
   }
