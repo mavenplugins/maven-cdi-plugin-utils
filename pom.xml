@@ -2,18 +2,18 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.itemis</groupId>
+    <groupId>io.github.mavenplugins</groupId>
     <artifactId>org-parent</artifactId>
     <version>1</version>
   </parent>
 
-  <groupId>com.itemis.maven.plugins</groupId>
+  <groupId>io.github.mavenplugins</groupId>
   <artifactId>cdi-plugin-utils</artifactId>
-  <version>3.4.1-SNAPSHOT</version>
+  <version>3.4.0-SNAPSHOT</version>
 
   <name>CDI Plugin Utilities</name>
   <description>Provides an abstract Mojo that enables CDI-based dependency injection for Maven Plugins.</description>
-  <url>https://github.com/shillner/maven-cdi-plugin-utils</url>
+  <url>https://github.com/mavenplugins/maven-cdi-plugin-utils</url>
   <inceptionYear>2016</inceptionYear>
 
   <developers>
@@ -24,17 +24,21 @@
       <organizationUrl>https://itemis.com/</organizationUrl>
       <timezone>1</timezone>
     </developer>
+    <developer>
+      <id>Developers</id>
+      <url>https://github.com/mavenplugins/maven-cdi-plugin-utils/graphs/contributors</url>
+    </developer>
   </developers>
 
   <scm>
-    <connection>scm:git:https://github.com/shillner/maven-cdi-plugin-utils.git</connection>
-    <url>https://github.com/shillner/maven-cdi-plugin-utils</url>
+    <connection>scm:git:https://github.com/mavenplugins/maven-cdi-plugin-utils.git</connection>
+    <url>https://github.com/mavenplugins/maven-cdi-plugin-utils</url>
     <tag>HEAD</tag>
   </scm>
 
   <issueManagement>
     <system>GitHub</system>
-    <url>https://github.com/shillner/maven-cdi-plugin-utils/issues</url>
+    <url>https://github.com/mavenplugins/maven-cdi-plugin-utils/issues</url>
   </issueManagement>
 
   <prerequisites>
@@ -150,25 +154,4 @@
     </pluginManagement>
   </build>
 
-  <profiles>
-    <profile>
-      <id>disable-java8-doclint</id>
-      <activation>
-        <jdk>[1.8,)</jdk>
-      </activation>
-      <build>
-        <pluginManagement>
-          <plugins>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-javadoc-plugin</artifactId>
-              <configuration>
-                <additionalparam>-Xdoclint:none</additionalparam>
-              </configuration>
-            </plugin>
-          </plugins>
-        </pluginManagement>
-      </build>
-    </profile>
-  </profiles>
 </project>

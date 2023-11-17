@@ -1,6 +1,8 @@
 CDI-based Dependency Injection for Maven Plugin Development
 ===========================================================
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.itemis.maven.plugins/cdi-plugin-utils/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.itemis.maven.plugins/cdi-plugin-utils)
+[![Eclipse Public License](https://img.shields.io/github/license/mavenplugins/maven-cdi-plugin-utils?label=License)](./LICENSE)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.mavenplugins/cdi-plugin-utils.svg?label=Maven%20Central)](https://search.maven.org/artifact/io.github.mavenplugins/cdi-plugin-utils)
+[![CI](https://github.com/mavenplugins/maven-cdi-plugin-utils/actions/workflows/build_and_deploy.yml/badge.svg)](https://github.com/mavenplugins/maven-cdi-plugin-utils/actions/workflows/build_and_deploy.yml)
 
 This small library enables the usage of CDI-based dependency injection in Apache Maven plugins which changes the way of implementing Maven plugins fundamentally.
 
@@ -13,7 +15,7 @@ Requirements
 
 The Idea Behind It
 ------------------
-The explicit desire for dependency injection (DI) in Maven plugins came up during the development of the [Unleash Maven Plugin](https://github.com/shillner/unleash-maven-plugin/). There it was necessary to dynamically inject an implementation of the ScmProvider interface into the provider registry that isn't even known at compile time. A second wish was to simply add those implementations as plugin dependencies when configuring the plugin for your project.
+The explicit desire for dependency injection (DI) in Maven plugins came up during the development of the [Unleash Maven Plugin](https://github.com/mavenplugins/unleash-maven-plugin/). There it was necessary to dynamically inject an implementation of the ScmProvider interface into the provider registry that isn't even known at compile time. A second wish was to simply add those implementations as plugin dependencies when configuring the plugin for your project.
 
 Since an examination of Maven's DI capabilities did not yield any satisfactory results, this project was brought to life. First there was only the need to enable DI for Maven plugins, without any technological preference. But fast the requirements became more concrete and the choice fell on CDI based on its reference implementation Weld. Here are some of the core requirements that led to the current concepts and implementation:
 
@@ -50,10 +52,10 @@ The Core Concepts
 
 Further Information
 -------------------
-For more detailed information about how to implement Maven plugins using this library please refer to the [Project Wiki](https://github.com/shillner/maven-cdi-plugin-utils/wiki). There all concepts and their implementation as well as the general usage is explained in detail.
+For more detailed information about how to implement Maven plugins using this library please refer to the [Project Wiki](https://github.com/mavenplugins/maven-cdi-plugin-utils/wiki). There all concepts and their implementation as well as the general usage is explained in detail.
 
-A reference plugin that bases on this library is available here: [Unleash Maven Plugin](https://github.com/shillner/unleash-maven-plugin/)
-This plugin provides f.i. an SCM provider API that is implemented in several external projects such as [Unleash SCM Provider for Git](https://github.com/shillner/unleash-scm-provider-git). These provider implementations can then be added to the plugin dependencies in order to support other SCM types during processing.
+A reference plugin that bases on this library is available here: [Unleash Maven Plugin](https://github.com/mavenplugins/unleash-maven-plugin/)
+This plugin provides f.i. an SCM provider API that is implemented in several external projects such as [Unleash SCM Provider for Git](https://github.com/mavenplugins/unleash-scm-provider-git). These provider implementations can then be added to the plugin dependencies in order to support other SCM types during processing.
 
-A further project is available here: [Maven CDI Processing hooks](https://github.com/shillner/maven-cdi-plugin-hooks)
+A further project is available here: [Maven CDI Processing hooks](https://github.com/mavenplugins/maven-cdi-plugin-hooks)
 This project provides some additional processing step implementations that can be used to extend processing workflows by simply adding the library to the plugin dependencies and overriding the processing workflow.
