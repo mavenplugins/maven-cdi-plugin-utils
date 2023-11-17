@@ -9,7 +9,7 @@
 
   <groupId>io.github.mavenplugins</groupId>
   <artifactId>cdi-plugin-utils</artifactId>
-  <version>3.4.0</version>
+  <version>3.4.1-SNAPSHOT</version>
 
   <name>CDI Plugin Utilities</name>
   <description>Provides an abstract Mojo that enables CDI-based dependency injection for Maven Plugins.</description>
@@ -33,7 +33,7 @@
   <scm>
     <connection>scm:git:https://github.com/mavenplugins/maven-cdi-plugin-utils.git</connection>
     <url>https://github.com/mavenplugins/maven-cdi-plugin-utils</url>
-    <tag>v3.4.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <issueManagement>
