@@ -71,8 +71,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Summary
 - Initial release of this artifact with new groupId `io.github.mavenplugins`
-- Codewise identical with `com.itemis.maven.plugins:cdi-plugin-utils:3.4.0`<br>
-  No more features nor changes
+- Codewise identical with `com.itemis.maven.plugins:cdi-plugin-utils:3.4.0`<br>No more features nor changes
 - Released to Maven Central
 
 ## Updates

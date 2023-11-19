@@ -13,7 +13,12 @@ on:
       #- '*'         # matches any branch that doesn't contain a '/'
       #- '*/*'       # matches any branch containing a single '/'
       #- '!master'   # excludes master
-      - '**'        # matches any branch
+      - '**'         # matches any branch
+      - '!**/*release_notes' # excludes gh_release_notes branch - supposed to update release notes relevant changes only
+    ignore-paths:
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - 'LICENSE'
 
 jobs:
   job1_Call_Build_and_Deploy:
