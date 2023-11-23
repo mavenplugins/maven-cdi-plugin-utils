@@ -15,7 +15,7 @@ on:
       #- '!master'   # excludes master
       - '**'         # matches any branch
       - '!**/*release_notes' # excludes gh_release_notes branch - supposed to update release notes relevant changes only
-    ignore-paths:
+    paths-ignore:
       - 'README.md'
       - 'CHANGELOG.md'
       - 'LICENSE'
