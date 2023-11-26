@@ -93,5 +93,5 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - This is just a dummy placeholder to make the parser of GHCICD/release-notes-from-changelog@v1 happy!
 -->
 
-[Unreleased]: https://github.com/mavenplugins/maven-cdi-plugin-utils/releases/tag/v3.4.0..HEAD
+[Unreleased]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.0..HEAD
 [3.4.0]: https://github.com/mavenplugins/maven-cdi-plugin-utils/releases/tag/v3.4.0
