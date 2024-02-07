@@ -20,8 +20,6 @@ public class WorkflowValidator {
     try {
       boolean isTryBlockOpen = false;
       boolean isFinallyBlockOpen = true;
-      boolean isParallelBlockOpen = false;
-      boolean isDataAssignmentBlockOpen = false;
 
       br = new BufferedReader(new InputStreamReader(is));
       String line;
