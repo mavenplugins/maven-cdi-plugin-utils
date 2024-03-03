@@ -56,8 +56,9 @@ public class CDIUtil {
   /**
    * Searches the container for all beans of a certain type without respecting qualifiers.
    *
+   * @param <T>           bean type to search for
    * @param weldContainer the container providing the beans.
-   * @param type the type of the beans to search for.
+   * @param type          the type of the beans to search for.
    * @return a collection of all found beans of the specified type.
    */
   public static <T> Collection<T> getAllBeansOfType(WeldContainer weldContainer, Class<T> type) {
@@ -78,10 +79,10 @@ public class CDIUtil {
    * Queries the specified file container (folder or JAR file) for all class files and adds all found classes to the
    * weld container so that these classes are later injectable.
    *
-   * @param weld the CDI container to add the classes to.
+   * @param weld        the CDI container to add the classes to.
    * @param classLoader the class loader used to query and load classes from the file container.
-   * @param container the file container where to search classes. The container can be a folder or a JAR file.
-   * @param log the log for processing output.
+   * @param container   the file container where to search classes. The container can be a folder or a JAR file.
+   * @param log         the log for processing output.
    * @throws MojoExecutionException if it was not possible to query the file container.
    */
   public static void addAllClasses(Weld weld, ClassLoader classLoader, File container, Log log)
