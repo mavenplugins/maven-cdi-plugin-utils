@@ -65,6 +65,36 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - TBD
 
 
+## [3.4.1]
+<!-- !!! Align version in badge URLs as well !!! -->
+[![3.4.1 Badge](https://img.shields.io/nexus/r/io.github.mavenplugins/cdi-plugin-utils?server=https://s01.oss.sonatype.org&label=Maven%20Central&queryOpt=:v=3.4.1)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/3.4.1)
+
+### Summary
+- Update requirements:
+  - JDK 1.8 or higher
+  - Apache Maven 3.3.9 or higher
+- Improve and precise Maven dependencies
+- Fix JavaDoc warning
+
+### Updates
+- pom.xml:
+  - update version.java 1.7 -> 1.8
+  - update version.maven 3.2.1 -> 3.3.9
+  - update version.weld-se 2.3.3.Final -> 2.4.8.Final
+  - remove obsolete explicit dependencies
+  - change dependency scope to `provided` for:
+    - maven-core
+    - maven-plugin-annotations
+
+- CDIUtil.java:
+  - fix JavaDoc warnings
+
+- README.md:
+  - Update requirements:
+    - JDK 1.8
+    - Apache Maven 3.3.9 or higher
+
+
 ## [3.4.0]
 <!-- !!! Align version in badge URLs as well !!! -->
 [![3.4.0 Badge](https://img.shields.io/nexus/r/io.github.mavenplugins/cdi-plugin-utils?server=https://s01.oss.sonatype.org&label=Maven%20Central&queryOpt=:v=3.4.0)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/3.4.0)
@@ -74,7 +104,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Codewise identical with `com.itemis.maven.plugins:cdi-plugin-utils:3.4.0`<br>No more features nor changes
 - Released to Maven Central
 
-## Updates
+### Updates
 - pom.xml:
   - update parent pom reference
   - update groupId to io.github.mavenplugins
@@ -93,5 +123,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - This is just a dummy placeholder to make the parser of GHCICD/release-notes-from-changelog@v1 happy!
 -->
 
-[Unreleased]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.0..HEAD
+[Unreleased]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.1..HEAD
+[3.4.1]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.0..v3.4.1
 [3.4.0]: https://github.com/mavenplugins/maven-cdi-plugin-utils/releases/tag/v3.4.0

@@ -9,8 +9,8 @@ This small library enables the usage of CDI-based dependency injection in Apache
 
 Requirements
 ------------
-* JDK 1.7 or higher
-* Apache Maven 3.x
+* JDK 1.8 or higher
+* Apache Maven 3.3.9 or higher
 
 
 The Idea Behind It

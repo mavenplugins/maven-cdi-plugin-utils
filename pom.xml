@@ -1,10 +1,12 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>io.github.mavenplugins</groupId>
     <artifactId>org-parent</artifactId>
-    <version>2-SNAPSHOT</version>
+    <version>3</version>
+    <relativePath></relativePath>
   </parent>
 
   <artifactId>cdi-plugin-utils</artifactId>
@@ -45,50 +47,50 @@
     <url>https://github.com/mavenplugins/maven-cdi-plugin-utils/issues</url>
   </issueManagement>
 
-  <prerequisites>
-    <maven>3.2.1</maven>
-  </prerequisites>
-
   <properties>
-    <version.aether>1.0.2.v20150114</version.aether>
+    <version.java>1.8</version.java>
+    <!-- 3rd PARTY -->
     <version.asciitable>0.2.5</version.asciitable>
-    <version.cdi-api>1.2</version.cdi-api>
     <version.guava>19.0</version.guava>
-    <version.java>1.7</version.java>
+    <!-- SLF4J -->
+    <version.slf4j-simple>1.7.21</version.slf4j-simple>
+    <!-- CDI -->
     <version.javax.inject>1</version.javax.inject>
+    <version.cdi-api>1.2</version.cdi-api>
+    <version.weld-se>2.4.8.Final</version.weld-se>
+    <!-- MAVEN -->
+    <version.maven>3.3.9</version.maven>
+    <version.maven-plugin-plugin>3.4</version.maven-plugin-plugin>
+    <!-- TEST -->
     <version.junit>4.12</version.junit>
     <version.junit-dataprovider>1.10.3</version.junit-dataprovider>
-    <version.maven>3.2.1</version.maven>
-    <version.maven-plugin-plugin>3.4</version.maven-plugin-plugin>
-    <version.slf4j-simple>1.7.21</version.slf4j-simple>
-    <version.weld-se>2.3.3.Final</version.weld-se>
   </properties>
 
   <dependencies>
-    <dependency>
-      <groupId>org.eclipse.aether</groupId>
-      <artifactId>aether-api</artifactId>
-      <version>${version.aether}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.aether</groupId>
-      <artifactId>aether-impl</artifactId>
-      <version>${version.aether}</version>
-    </dependency>
+    <!-- 3rd PARTY DEPENDENCIES -->
     <dependency>
       <groupId>de.vandermeer</groupId>
       <artifactId>asciitable</artifactId>
       <version>${version.asciitable}</version>
     </dependency>
     <dependency>
-      <groupId>javax.enterprise</groupId>
-      <artifactId>cdi-api</artifactId>
-      <version>${version.cdi-api}</version>
-    </dependency>
-    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${version.guava}</version>
+    </dependency>
+
+    <!-- SLF4J DEPENDENCIES -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>${version.slf4j-simple}</version>
+    </dependency>
+
+    <!-- CDI DEPENDENCIES -->
+    <dependency>
+      <groupId>javax.enterprise</groupId>
+      <artifactId>cdi-api</artifactId>
+      <version>${version.cdi-api}</version>
     </dependency>
     <dependency>
       <groupId>javax.inject</groupId>
@@ -96,50 +98,64 @@
       <version>${version.javax.inject}</version>
     </dependency>
     <dependency>
+      <groupId>org.jboss.weld.se</groupId>
+      <artifactId>weld-se-core</artifactId>
+      <version>${version.weld-se}</version>
+      <exclusions>
+        <!-- Exclude dependencies overlapping with CDI dependencies defined above -->
+        <exclusion>
+          <groupId>jakarta.enterprise</groupId>
+          <artifactId>jakarta.enterprise.cdi-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>jakarta.inject</groupId>
+          <artifactId>jakarta.inject-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <!-- MAVEN DEPENDENCIES -->
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-core</artifactId>
+      <version>${version.maven}</version>
+      <scope>provided</scope>
+      <exclusions>
+        <!-- This cdi-api dependency overlaps with CDI dependencies defined above -->
+        <exclusion>
+          <groupId>javax.enterprise</groupId>
+          <artifactId>cdi-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- This exclusion is key to comply with the m2e embedded implementation at runtime -->
+          <groupId>org.apache.maven</groupId>
+          <artifactId>maven-resolver-provider</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.maven.plugin-tools</groupId>
+          <artifactId>maven-plugin-annotations</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven.plugin-tools</groupId>
+      <artifactId>maven-plugin-annotations</artifactId>
+      <version>${version.maven-plugin-plugin}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- TEST DEPENDENCIES -->
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>${version.junit}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.tngtech.java</groupId>
       <artifactId>junit-dataprovider</artifactId>
       <version>${version.junit-dataprovider}</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-core</artifactId>
-      <version>${version.maven}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-model</artifactId>
-      <version>${version.maven}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven.plugin-tools</groupId>
-      <artifactId>maven-plugin-annotations</artifactId>
-      <version>${version.maven-plugin-plugin}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-plugin-api</artifactId>
-      <version>${version.maven}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-settings</artifactId>
-      <version>${version.maven}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
-      <version>${version.slf4j-simple}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.weld.se</groupId>
-      <artifactId>weld-se</artifactId>
-      <version>${version.weld-se}</version>
     </dependency>
   </dependencies>
 
