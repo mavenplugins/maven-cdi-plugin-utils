@@ -73,7 +73,6 @@ public class CdiBeanWrapper<T> implements Bean<T> {
     return Collections.emptySet();
   }
 
-  @Override
   public boolean isNullable() {
     return true;
   }

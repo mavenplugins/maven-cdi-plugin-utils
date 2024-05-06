@@ -54,8 +54,8 @@
     <!-- SLF4J -->
     <version.slf4j-simple>1.7.21</version.slf4j-simple>
     <!-- CDI -->
-    <jakarta.inject-api.version>2.0.1</jakarta.inject-api.version>
-    <jakarta.enterprise.cdi-api.version>4.1.0</jakarta.enterprise.cdi-api.version>
+    <version.jakarta.inject-api>2.0.1</version.jakarta.inject-api>
+    <version.jakarta.enterprise.cdi-api>4.1.0</version.jakarta.enterprise.cdi-api>
     <version.weld-se>5.1.2.Final</version.weld-se>
     <!-- MAVEN -->
     <version.maven>3.3.9</version.maven>
@@ -89,12 +89,12 @@
     <dependency>
       <groupId>jakarta.enterprise</groupId>
       <artifactId>jakarta.enterprise.cdi-api</artifactId>
-      <version>${jakarta.enterprise.cdi-api.version}</version>
+      <version>${version.jakarta.enterprise.cdi-api}</version>
     </dependency>
     <dependency>
       <groupId>jakarta.inject</groupId>
       <artifactId>jakarta.inject-api</artifactId>
-      <version>${jakarta.inject-api.version}</version>
+      <version>${version.jakarta.inject-api}</version>
     </dependency>
     <dependency>
       <groupId>org.jboss.weld.se</groupId>

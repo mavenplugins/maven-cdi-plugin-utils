@@ -99,7 +99,7 @@ import com.itemis.maven.plugins.cdi.logging.MavenLogWrapper;
  * {@link CDIMojoProcessingStep}. Then orchestrate your standard business workflow in a worflow descriptor file.<br>
  * <br>
  *
- * <h1>The Workflow Descriptor</h1>
+ * <h2>The Workflow Descriptor</h2>
  * <ul>
  * <li>The descriptor is located under <i>META-INF/workflows</i></li>
  * <li>The name of the workflow descriptor file must match the name of the goal. F.i. goal="perform"
