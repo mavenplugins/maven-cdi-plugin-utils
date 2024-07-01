@@ -1,7 +1,6 @@
 package com.itemis.maven.plugins.cdi.internal.util.workflow;
 
 import java.lang.reflect.Method;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -29,6 +28,7 @@ import com.itemis.maven.plugins.cdi.CDIMojoProcessingStep;
 import com.itemis.maven.plugins.cdi.ExecutionContext;
 import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
 import com.itemis.maven.plugins.cdi.annotations.RollbackOnError;
+import com.itemis.maven.plugins.cdi.exception.EnforceRollbackWithoutErrorException;
 
 /**
  * An executor for a {@link ProcessingWorkflow} which takes care of executing the steps of the workflow in the correct
@@ -60,7 +60,7 @@ public class WorkflowExecutor {
    *
    * @param isOnlineExecution whether Maven is executed in online mode or not.
    * @throws MojoExecutionException if there are missing processing step implementations for one or more ids of the
-   *           workflow. The exception message will list all missing ids.
+   *                                  workflow. The exception message will list all missing ids.
    */
   public void validate(boolean isOnlineExecution) throws MojoExecutionException {
     Set<String> unknownIds = Sets.newHashSet();
@@ -108,7 +108,7 @@ public class WorkflowExecutor {
    * If an exceptional case is reached, all already executed steps will be rolled back prior to throwing the exception.
    *
    * @throws MojoExecutionException if any of the processing steps of the workflow throw such an exception.
-   * @throws MojoFailureException if any of the processing steps of the workflow throw such an exception.
+   * @throws MojoFailureException   if any of the processing steps of the workflow throw such an exception.
    */
   public void execute() throws MojoExecutionException, MojoFailureException {
     this.log.info("Executing the standard workflow of the goal");
@@ -125,6 +125,9 @@ public class WorkflowExecutor {
     } catch (MojoFailureException e) {
       executeFinallySteps();
       throw e;
+    } catch (EnforceRollbackWithoutErrorException e) {
+      executeFinallySteps();
+      // Do not re-throw this exception, since we end with no error in this case!
     } catch (RuntimeException e) {
       executeFinallySteps();
       throw e;
@@ -165,6 +168,8 @@ public class WorkflowExecutor {
         throw (MojoExecutionException) t;
       } else if (t instanceof MojoFailureException) {
         throw (MojoFailureException) t;
+      } else if (t instanceof EnforceRollbackWithoutErrorException) {
+        throw (EnforceRollbackWithoutErrorException) t;
       } else if (t instanceof RuntimeException) {
         throw (RuntimeException) t;
       } else {
@@ -180,7 +185,7 @@ public class WorkflowExecutor {
     }
 
     Queue<Future<?>> results = new LinkedList<Future<?>>();
-    final Collection<Throwable> thrownExceptions = Lists.newArrayList();
+    final List<Throwable> thrownExceptions = Lists.newArrayList();
 
     ParallelWorkflowStep parallelWorkflowStep = (ParallelWorkflowStep) workflowStep;
     ExecutorService executorService = Executors.newFixedThreadPool(parallelWorkflowStep.getSteps().size());
@@ -198,7 +203,13 @@ public class WorkflowExecutor {
           } catch (Throwable t) {
             WorkflowExecutor.this.log.error("An exception was caught while processing the workflow step with id '"
                 + simpleWorkflowStep.getCompositeStepId() + "'.", t);
-            thrownExceptions.add(t);
+            if (thrownExceptions.size() > 0 && thrownExceptions.get(0) instanceof EnforceRollbackWithoutErrorException
+                && !(t instanceof EnforceRollbackWithoutErrorException)) {
+              // prioritize other Exception before EnforceRollbackWithoutErrorException
+              thrownExceptions.add(0, t);
+            } else {
+              thrownExceptions.add(t);
+            }
           }
         }
       }));
@@ -223,6 +234,8 @@ public class WorkflowExecutor {
         throw (MojoExecutionException) firstError;
       } else if (firstError instanceof MojoFailureException) {
         throw (MojoFailureException) firstError;
+      } else if (firstError instanceof EnforceRollbackWithoutErrorException) {
+        throw (EnforceRollbackWithoutErrorException) firstError;
       } else if (firstError instanceof RuntimeException) {
         throw (RuntimeException) firstError;
       } else {
