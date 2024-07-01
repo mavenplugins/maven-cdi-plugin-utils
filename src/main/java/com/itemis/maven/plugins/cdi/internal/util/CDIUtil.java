@@ -10,16 +10,16 @@ import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import javax.enterprise.context.spi.CreationalContext;
-import javax.enterprise.inject.spi.Bean;
-import javax.inject.Qualifier;
+import jakarta.enterprise.context.spi.CreationalContext;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Default;
+import jakarta.enterprise.inject.spi.Bean;
+import jakarta.inject.Qualifier;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.jboss.weld.literal.AnyLiteral;
-import org.jboss.weld.literal.DefaultLiteral;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
@@ -48,7 +48,7 @@ public class CDIUtil {
       }
     }
     if (qualifiers.isEmpty()) {
-      qualifiers.add(DefaultLiteral.INSTANCE);
+      qualifiers.add(Default.Literal.INSTANCE);
     }
     return qualifiers;
   }
@@ -63,7 +63,7 @@ public class CDIUtil {
    */
   public static <T> Collection<T> getAllBeansOfType(WeldContainer weldContainer, Class<T> type) {
     Collection<T> beans = Lists.newArrayList();
-    Set<Bean<?>> cdiBeans = weldContainer.getBeanManager().getBeans(type, AnyLiteral.INSTANCE);
+    Set<Bean<?>> cdiBeans = weldContainer.getBeanManager().getBeans(type, Any.Literal.INSTANCE);
     // searches all beans for beans that have the matching goal name, ...
     for (Bean<?> b : cdiBeans) {
       @SuppressWarnings("unchecked")
