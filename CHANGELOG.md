@@ -65,6 +65,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - TBD
 
 
+## [3.5.0]
+<!-- !!! Align version in badge URLs as well !!! -->
+[![3.5.0 Badge](https://img.shields.io/nexus/r/io.github.mavenplugins/cdi-plugin-utils?server=https://s01.oss.sonatype.org&label=Maven%20Central&queryOpt=:v=3.5.0)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/3.5.0)
+
+### Summary
+- Extend the workflow execution to handle a EnforceRollbackWithoutErrorException
+  to abort the workflow with a rollback of previous actions but with Maven success.<br>
+  This is supposed for test purpose only - #4
+
+### Updates
+- EnforceRollbackWithoutErrorException.java:
+  - added
+
+- WorkflowExecutor.java:
+  - handle EnforceRollbackWithoutErrorException to:
+    - perform a rollback like in an error case
+    - end normal without re-throwing this exception
+
+
 ## [3.4.1]
 <!-- !!! Align version in badge URLs as well !!! -->
 [![3.4.1 Badge](https://img.shields.io/nexus/r/io.github.mavenplugins/cdi-plugin-utils?server=https://s01.oss.sonatype.org&label=Maven%20Central&queryOpt=:v=3.4.1)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/3.4.1)
@@ -123,6 +142,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - This is just a dummy placeholder to make the parser of GHCICD/release-notes-from-changelog@v1 happy!
 -->
 
-[Unreleased]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.1..HEAD
+[Unreleased]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.5.0..HEAD
+[3.5.0]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.1..v3.5.0
 [3.4.1]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.0..v3.4.1
 [3.4.0]: https://github.com/mavenplugins/maven-cdi-plugin-utils/releases/tag/v3.4.0
