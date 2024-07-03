@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>cdi-plugin-utils</artifactId>
-  <version>3.5.0-SNAPSHOT</version>
+  <version>4.0.0-SNAPSHOT</version>
 
   <name>CDI Plugin Utilities</name>
   <description>Provides an abstract Mojo that enables CDI-based dependency injection for Maven Plugins.</description>
@@ -47,19 +47,17 @@
   </issueManagement>
 
   <properties>
-    <version.java>17</version.java>
+    <version.java>1.8</version.java>
     <!-- 3rd PARTY -->
     <version.asciitable>0.2.5</version.asciitable>
     <version.guava>19.0</version.guava>
     <!-- SLF4J -->
     <version.slf4j-simple>1.7.21</version.slf4j-simple>
     <!-- CDI -->
-    <version.jakarta.inject-api>2.0.1</version.jakarta.inject-api>
-    <version.jakarta.enterprise.cdi-api>4.1.0</version.jakarta.enterprise.cdi-api>
-    <version.weld-se>5.1.2.Final</version.weld-se>
+    <version.weld-se>4.0.3.Final</version.weld-se>
     <!-- MAVEN -->
     <version.maven>3.3.9</version.maven>
-    <version.maven-plugin-plugin>3.4</version.maven-plugin-plugin>
+    <version.maven-plugin-plugin>3.13.1</version.maven-plugin-plugin>
     <!-- TEST -->
     <version.junit>4.12</version.junit>
     <version.junit-dataprovider>1.10.3</version.junit-dataprovider>
@@ -86,16 +84,6 @@
     </dependency>
 
     <!-- CDI DEPENDENCIES -->
-    <dependency>
-      <groupId>jakarta.enterprise</groupId>
-      <artifactId>jakarta.enterprise.cdi-api</artifactId>
-      <version>${version.jakarta.enterprise.cdi-api}</version>
-    </dependency>
-    <dependency>
-      <groupId>jakarta.inject</groupId>
-      <artifactId>jakarta.inject-api</artifactId>
-      <version>${version.jakarta.inject-api}</version>
-    </dependency>
     <dependency>
       <groupId>org.jboss.weld.se</groupId>
       <artifactId>weld-se-core</artifactId>

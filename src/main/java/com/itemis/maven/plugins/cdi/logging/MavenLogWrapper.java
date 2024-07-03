@@ -4,11 +4,11 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import jakarta.enterprise.inject.Typed;
-
 import org.apache.maven.plugin.logging.Log;
 
 import com.google.common.base.Preconditions;
+
+import jakarta.enterprise.inject.Typed;
 
 /**
  * A wrapper around the maven logger that offers some extended functionalities like checking the enablement of the

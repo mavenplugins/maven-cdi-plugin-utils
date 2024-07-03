@@ -7,17 +7,17 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.Set;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.context.spi.CreationalContext;
+import jakarta.enterprise.inject.Default;
 import jakarta.enterprise.inject.Typed;
 import jakarta.enterprise.inject.spi.Bean;
 import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.enterprise.inject.spi.InjectionPoint;
 import jakarta.inject.Qualifier;
-import jakarta.enterprise.inject.Default;
-
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 
 public class CdiProducerBean<T> implements Bean<T> {
   private Method method;
@@ -41,7 +41,7 @@ public class CdiProducerBean<T> implements Bean<T> {
     Set<Type> beanTypes = Sets.newHashSet();
 
     if (implTpye instanceof ParameterizedType) {
-      beanTypes.add((ParameterizedType) implTpye);
+      beanTypes.add(implTpye);
     } else {
       Typed typedAnnotation = ((Class<?>) implTpye).getAnnotation(Typed.class);
       if (typedAnnotation != null) {
@@ -145,7 +145,7 @@ public class CdiProducerBean<T> implements Bean<T> {
     return Collections.emptySet();
   }
 
-
+  @Override
   public boolean isNullable() {
     return true;
   }

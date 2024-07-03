@@ -65,14 +65,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - TBD
 
 
-## [3.5.0]
+## [4.0.0]
 <!-- !!! Align version in badge URLs as well !!! -->
-[![3.5.0 Badge](https://img.shields.io/nexus/r/io.github.mavenplugins/cdi-plugin-utils?server=https://s01.oss.sonatype.org&label=Maven%20Central&queryOpt=:v=3.5.0)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/3.5.0)
+[![4.0.0 Badge](https://img.shields.io/nexus/r/io.github.mavenplugins/cdi-plugin-utils?server=https://s01.oss.sonatype.org&label=Maven%20Central&queryOpt=:v=4.0.0)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/4.0.0)
 
 ### Summary
-- Extend the workflow execution to handle a EnforceRollbackWithoutErrorException
+- Work for Java 8, 11, 17, 21 by using CDI WELD 4.0.3.Final with Jakarta Inject API
+- CDI dependencies migrated from Javax to Jakarta EE (see **Compatibility** below)
+- Extend the workflow execution to handle an `EnforceRollbackWithoutErrorException`
   to abort the workflow with a rollback of previous actions but with Maven success.<br>
   This is supposed for test purpose only - #4
+
+### Compatibility
+- 👉 This release requires to migrate components depending on it, since CDI dependencies did have been changed from Javax to Jakarta EE!
 
 ### Updates
 - EnforceRollbackWithoutErrorException.java:
@@ -82,6 +87,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - handle EnforceRollbackWithoutErrorException to:
     - perform a rollback like in an error case
     - end normal without re-throwing this exception
+
+- AbstractCDIMojo.java,
+  MojoInject.java,
+  MojoProduces.java,
+  CdiBeanWrapper.java,
+  CdiProducerBean.java,
+  CDIUtil.java,
+  MavenLogWrapper.java:
+  - migrate from Javax to Jakarta EE injection
 
 
 ## [3.4.1]
@@ -142,7 +156,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - This is just a dummy placeholder to make the parser of GHCICD/release-notes-from-changelog@v1 happy!
 -->
 
-[Unreleased]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.5.0..HEAD
-[3.5.0]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.1..v3.5.0
+[Unreleased]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v4.0.0..HEAD
+[4.0.0]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.1..v4.0.0
 [3.4.1]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.0..v3.4.1
 [3.4.0]: https://github.com/mavenplugins/maven-cdi-plugin-utils/releases/tag/v3.4.0

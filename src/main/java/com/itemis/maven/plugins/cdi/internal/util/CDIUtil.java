@@ -10,12 +10,6 @@ import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import jakarta.enterprise.context.spi.CreationalContext;
-import jakarta.enterprise.inject.Any;
-import jakarta.enterprise.inject.Default;
-import jakarta.enterprise.inject.spi.Bean;
-import jakarta.inject.Qualifier;
-
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.jboss.weld.environment.se.Weld;
@@ -25,6 +19,12 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
+
+import jakarta.enterprise.context.spi.CreationalContext;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Default;
+import jakarta.enterprise.inject.spi.Bean;
+import jakarta.inject.Qualifier;
 
 /**
  * A utility class for handling CDI-specific tasks such as getting all beans of a specific type or adding beans to the

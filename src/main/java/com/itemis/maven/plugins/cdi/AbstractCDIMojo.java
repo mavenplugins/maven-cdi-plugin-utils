@@ -9,13 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import jakarta.enterprise.event.Observes;
-import jakarta.enterprise.inject.spi.AfterBeanDiscovery;
-import jakarta.enterprise.inject.spi.BeanManager;
-import jakarta.enterprise.inject.spi.Extension;
-import jakarta.enterprise.inject.spi.ProcessAnnotatedType;
-import jakarta.inject.Named;
-
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.AbstractMojo;
@@ -50,6 +43,13 @@ import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowExecutor;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowUtil;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowValidator;
 import com.itemis.maven.plugins.cdi.logging.MavenLogWrapper;
+
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.spi.AfterBeanDiscovery;
+import jakarta.enterprise.inject.spi.BeanManager;
+import jakarta.enterprise.inject.spi.Extension;
+import jakarta.enterprise.inject.spi.ProcessAnnotatedType;
+import jakarta.inject.Named;
 
 /**
  * An abstract Mojo that enables CDI-based dependency injection for the current maven plugin.<br>

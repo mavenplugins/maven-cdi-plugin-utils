@@ -7,6 +7,10 @@ CDI-based Dependency Injection for Maven Plugin Development
 This small library enables the usage of CDI-based dependency injection in Apache Maven plugins which changes the way of implementing Maven plugins fundamentally.
 
 
+🚀 JAVA 8 - JAVA 21 Ready Since Version 4.0.0 🚀
+================================================
+
+
 Requirements
 ------------
 * JDK 1.8 or higher
@@ -59,3 +63,8 @@ This plugin provides f.i. an SCM provider API that is implemented in several ext
 
 A further project is available here: [Maven CDI Processing hooks](https://github.com/mavenplugins/maven-cdi-plugin-hooks)
 This project provides some additional processing step implementations that can be used to extend processing workflows by simply adding the library to the plugin dependencies and overriding the processing workflow.
+
+
+Contributors
+------------
+[![Code Contributors](https://contrib.rocks/image?repo=mavenplugins/maven-cdi-plugin-utils)](https://github.com/mavenplugins/maven-cdi-plugin-utils/graphs/contributors)
