@@ -18,19 +18,19 @@
 
   <developers>
     <developer>
-      <id>shillner</id>
-      <name>Stanley Hillner</name>
-      <organization>itemis AG</organization>
-      <organizationUrl>https://itemis.com/</organizationUrl>
-      <timezone>1</timezone>
-    </developer>
-    <developer>
       <id>mavenplugins</id>
       <!-- Let Maven Central Search show 'Public Project' as known contributors tag -->
       <name>Public Project</name>
       <url>https://github.com/mavenplugins/maven-cdi-plugin-utils/graphs/contributors</url>
       <organization>mavenplugins</organization>
       <organizationUrl>https://github.com/mavenplugins/</organizationUrl>
+      <timezone>1</timezone>
+    </developer>
+    <developer>
+      <id>shillner</id>
+      <name>Stanley Hillner</name>
+      <organization>itemis AG</organization>
+      <organizationUrl>https://itemis.com/</organizationUrl>
       <timezone>1</timezone>
     </developer>
   </developers>
@@ -50,7 +50,7 @@
     <version.java>1.8</version.java>
     <!-- 3rd PARTY -->
     <version.asciitable>0.2.5</version.asciitable>
-    <version.guava>23.0</version.guava>
+    <version.guava>33.3.1-jre</version.guava>
     <!-- SLF4J -->
     <version.slf4j-simple>1.7.21</version.slf4j-simple>
     <!-- CDI -->
