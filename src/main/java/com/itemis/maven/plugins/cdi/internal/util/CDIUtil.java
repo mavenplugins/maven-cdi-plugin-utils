@@ -129,7 +129,7 @@ public class CDIUtil {
 
   private static Set<String> getAllClassNames(File folder) {
     Set<String> classNames = Sets.newHashSet();
-    for (File f : Files.fileTreeTraverser().preOrderTraversal(folder)) {
+    for (File f : Files.fileTraverser().depthFirstPreOrder(folder)) {
       String extension = Files.getFileExtension(f.getName());
       if (Objects.equal(FILE_EXTENSION_CLASS, extension)) {
         String basePath = f.getAbsolutePath().replace(folder.getAbsolutePath(), "");
