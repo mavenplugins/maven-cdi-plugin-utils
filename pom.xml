@@ -50,7 +50,7 @@
     <version.java>1.8</version.java>
     <!-- 3rd PARTY -->
     <version.asciitable>0.2.5</version.asciitable>
-    <version.guava>19.0</version.guava>
+    <version.guava>23.0</version.guava>
     <!-- SLF4J -->
     <version.slf4j-simple>1.7.21</version.slf4j-simple>
     <!-- CDI -->
