@@ -59,7 +59,7 @@
     <version.maven>3.3.9</version.maven>
     <version.maven-plugin-plugin>3.13.1</version.maven-plugin-plugin>
     <!-- TEST -->
-    <version.junit>4.12</version.junit>
+    <version.junit>4.13.2</version.junit>
     <version.junit-dataprovider>1.10.3</version.junit-dataprovider>
   </properties>
 
