@@ -2,9 +2,7 @@ package com.itemis.maven.plugins.cdi.util;
 
 import java.io.InputStream;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowValidator;
@@ -13,8 +11,6 @@ import com.tngtech.java.junit.dataprovider.DataProviderRunner;
 
 @RunWith(DataProviderRunner.class)
 public class WorkflowValidatorTest {
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   @Test
   @DataProvider({ "try-finally", "try-finally_complex" })
@@ -22,11 +18,10 @@ public class WorkflowValidatorTest {
     WorkflowValidator.validateSyntactically(getWorkflowAsStream(workflowName));
   }
 
-  @Test
+  @Test(expected = RuntimeException.class)
   @DataProvider({ "invalid/try-finally_noTryBlockOpening", "invalid/try-finally_noTryBlockClosing",
       "invalid/try-finally_noFinallyBlock" })
   public void testValidate_error(String workflowName) {
-    this.exception.expect(RuntimeException.class);
     WorkflowValidator.validateSyntactically(getWorkflowAsStream(workflowName));
   }
 
