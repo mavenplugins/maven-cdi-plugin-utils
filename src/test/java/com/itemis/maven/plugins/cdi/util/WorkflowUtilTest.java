@@ -240,7 +240,7 @@ public class WorkflowUtilTest {
         + "├─────────────┼──────────────────────────────────────────────────┼──────────┤" + SystemUtils.LINE_SEPARATOR
         + "│ mvn         │ Invoke a separate Maven build process during     │   true   │" + SystemUtils.LINE_SEPARATOR
         + "│             │ your processing logic.                           │          │" + SystemUtils.LINE_SEPARATOR
-        + "└─────────────┴──────────────────────────────────────────────────┴──────────┘" + SystemUtils.LINE_SEPARATOR;
+        + "└─────────────┴──────────────────────────────────────────────────┴──────────┘";
     Assert.assertEquals(expected, WorkflowUtil.renderAvailableSteps(mapProcessingSteps));
   }
 
