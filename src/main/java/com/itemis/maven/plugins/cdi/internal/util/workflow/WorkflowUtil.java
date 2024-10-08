@@ -27,12 +27,13 @@ import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.ParallelWorkflowStep.Builder;
 import com.itemis.maven.plugins.cdi.logging.Logger;
 
-import de.vandermeer.asciitable.v2.RenderedTable;
-import de.vandermeer.asciitable.v2.V2_AsciiTable;
-import de.vandermeer.asciitable.v2.render.V2_AsciiTableRenderer;
-import de.vandermeer.asciitable.v2.render.WidthLongestLine;
-import de.vandermeer.asciitable.v2.row.ContentRow;
-import de.vandermeer.asciitable.v2.themes.V2_E_TableThemes;
+import de.vandermeer.asciitable.AT_Context;
+import de.vandermeer.asciitable.AT_Renderer;
+import de.vandermeer.asciitable.AT_Row;
+import de.vandermeer.asciitable.AsciiTable;
+import de.vandermeer.asciitable.CWC_LongestLine;
+import de.vandermeer.asciithemes.u8.U8_Grids;
+import de.vandermeer.skb.interfaces.transformers.textformat.TextAlignment;
 
 /**
  * A utility class all around workflow processing, except the actual execution of the workflows.
@@ -294,27 +295,26 @@ public class WorkflowUtil {
   }
 
   public static String renderAvailableSteps(Map<String, ProcessingStep> steps) {
-    V2_AsciiTable table = new V2_AsciiTable();
+    AsciiTable table = new AsciiTable(new AT_Context().setGrid(U8_Grids.borderStrongDoubleLight()));
     table.addRule();
-    ContentRow header = table.addRow("ID", "DESCRIPTION", "REQUIRES ONLINE");
-    header.setAlignment(new char[] { 'c', 'c', 'c' });
+    AT_Row header = table.addRow("ID", "DESCRIPTION", "REQUIRES ONLINE");
+    header.setTextAlignment(TextAlignment.CENTER);
     table.addStrongRule();
 
     List<String> sortedIds = Lists.newArrayList(steps.keySet());
     Collections.sort(sortedIds);
     for (String id : sortedIds) {
       ProcessingStep annotation = steps.get(id);
-      ContentRow data = table.addRow(annotation.id(), annotation.description(), annotation.requiresOnline());
-      data.setAlignment(new char[] { 'l', 'l', 'c' });
+      AT_Row data = table.addRow(annotation.id(), annotation.description(), annotation.requiresOnline());
+      data.setTextAlignment(TextAlignment.CENTER).setPaddingLeftRight(1);
+      data.getCells().get(0).getContext().setTextAlignment(TextAlignment.LEFT);
+      data.getCells().get(1).getContext().setTextAlignment(TextAlignment.LEFT);
       table.addRule();
     }
 
-    V2_AsciiTableRenderer renderer = new V2_AsciiTableRenderer();
-    renderer.setTheme(V2_E_TableThemes.UTF_STRONG_DOUBLE.get());
-    renderer.setWidth(new WidthLongestLine().add(10, 20).add(20, 50).add(10, 10));
-    RenderedTable renderedTable = renderer.render(table);
-
-    return renderedTable.toString();
+    // renderer.setTheme(AT_Themes.UTF_STRONG_DOUBLE.get());
+    return table.setRenderer(AT_Renderer.create().setCWC(new CWC_LongestLine().add(10, 20).add(20, 50).add(10, 10)))
+        .render();
   }
 
 }
