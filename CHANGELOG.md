@@ -65,6 +65,40 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - TBD
 
 
+## [4.0.1]
+<!-- !!! Align version in badge URLs as well !!! -->
+[![4.0.1 Badge](https://img.shields.io/nexus/r/io.github.mavenplugins/cdi-plugin-utils?server=https://s01.oss.sonatype.org&label=Maven%20Central&queryOpt=:v=4.0.1)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/4.0.1)
+
+### Summary
+- Remove vulnerability warnings due to guava dependency:
+  - Update dependency to guava version `19.0` -> `33.3.1-jre`
+  - Update dependency to junit version `4.12` -> `4.13.2`
+  - Update dependency to junit-dataprovider version `1.10.3` -> `1.13.1`
+  - Update dependency to asciitable version `0.2.5` -> `0.3.2`
+- No further functional change
+
+### Updates
+- pom.xml:
+  - Update dependency `com.google.guava:guava:19.0` -> `com.google.guava:guava:33.3.1-jre`
+  - Update dependency `junit:junit:4.12` -> `junit:junit:4.13.2`
+  - Update dependency `com.tngtech.java:junit-dataprovider:1.10.3` -> `com.tngtech.java:junit-dataprovider:1.13.1`
+  - Update dependency `de.vandermeer:asciitable:0.2.5` -> `de.vandermeer:asciitable:0.3.2`
+
+- CDIUtil.java:
+  - update usage of deprecated/removed guava API `Files.fileTreeTraverser().preOrderTraversal(folder)`
+    to `Files.fileTraverser().depthFirstPreOrder(folder)`
+
+- WorkflowUtil.java:
+  - extract ASCII table rendering from method `printAvailableSteps(Map<String, ProcessingStep> steps, Logger log)`
+    to method `renderAvailableSteps(Map<String, ProcessingStep> steps)`
+
+- WorkflowUtilTest.java:
+  - add test for `WorkflowUtil.renderAvailableSteps(Map<String, ProcessingStep> steps)`
+
+- WorkflowValidatorTest.java:
+  - Fix for junit deprecation warning raised due to junit version update
+
+
 ## [4.0.0]
 <!-- !!! Align version in badge URLs as well !!! -->
 [![4.0.0 Badge](https://img.shields.io/nexus/r/io.github.mavenplugins/cdi-plugin-utils?server=https://s01.oss.sonatype.org&label=Maven%20Central&queryOpt=:v=4.0.0)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/4.0.0)
@@ -156,7 +190,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - This is just a dummy placeholder to make the parser of GHCICD/release-notes-from-changelog@v1 happy!
 -->
 
-[Unreleased]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v4.0.0..HEAD
+[Unreleased]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v4.0.1..HEAD
+[4.0.1]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v4.0.0..v4.0.1
 [4.0.0]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.1..v4.0.0
 [3.4.1]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.0..v3.4.1
 [3.4.0]: https://github.com/mavenplugins/maven-cdi-plugin-utils/releases/tag/v3.4.0
