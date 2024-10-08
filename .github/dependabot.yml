@@ -14,8 +14,6 @@ updates:
     - dependency-name: "org.jboss.weld.se:*"
     # ignore slf4j - will be managed manually!
     - dependency-name: "org.slf4j:*"
-    # ignore to update asciitable renderer
-    - dependency-name: "de.vandermeer:asciitable"
 - package-ecosystem: github-actions
   directory: /
   schedule:
