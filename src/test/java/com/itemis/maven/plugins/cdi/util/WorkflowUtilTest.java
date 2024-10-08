@@ -2,12 +2,20 @@ package com.itemis.maven.plugins.cdi.util;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
+import com.itemis.maven.plugins.cdi.CDIMojoProcessingStep;
+import com.itemis.maven.plugins.cdi.ExecutionContext;
+import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.ParallelWorkflowStep;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.ProcessingWorkflow;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.SimpleWorkflowStep;
@@ -208,5 +216,55 @@ public class WorkflowUtilTest {
 
   private InputStream getWorkflowAsStream(String name) {
     return Thread.currentThread().getContextClassLoader().getResourceAsStream("workflows/" + name);
+  }
+
+  @Test
+  public void testRenderAvailableSteps() {
+    final Map<String, ProcessingStep> mapProcessingSteps = Maps.newHashMap();
+    ProcessingStep annotation = TestExecHook.class.getAnnotation(ProcessingStep.class);
+    mapProcessingSteps.put(annotation.id(), annotation);
+    annotation = TestHttpRequestHook.class.getAnnotation(ProcessingStep.class);
+    mapProcessingSteps.put(annotation.id(), annotation);
+    annotation = TestMavenHook.class.getAnnotation(ProcessingStep.class);
+    mapProcessingSteps.put(annotation.id(), annotation);
+    final String expected = "" // nl
+        + "┌─────────────┬──────────────────────────────────────────────────┬──────────┐" + SystemUtils.LINE_SEPARATOR
+        + "│     ID      │                   DESCRIPTION                    │ REQUIRES │" + SystemUtils.LINE_SEPARATOR
+        + "│             │                                                  │  ONLINE  │" + SystemUtils.LINE_SEPARATOR
+        + "╞═════════════╪══════════════════════════════════════════════════╪══════════╡" + SystemUtils.LINE_SEPARATOR
+        + "│ exec        │ Executes shell commands such as shell or batch   │   true   │" + SystemUtils.LINE_SEPARATOR
+        + "│             │ script execution.                                │          │" + SystemUtils.LINE_SEPARATOR
+        + "├─────────────┼──────────────────────────────────────────────────┼──────────┤" + SystemUtils.LINE_SEPARATOR
+        + "│ httpRequest │ Send HTTP requests such as POST, PUT or GET as   │   true   │" + SystemUtils.LINE_SEPARATOR
+        + "│             │ part of your processing logic.                   │          │" + SystemUtils.LINE_SEPARATOR
+        + "├─────────────┼──────────────────────────────────────────────────┼──────────┤" + SystemUtils.LINE_SEPARATOR
+        + "│ mvn         │ Invoke a separate Maven build process during     │   true   │" + SystemUtils.LINE_SEPARATOR
+        + "│             │ your processing logic.                           │          │" + SystemUtils.LINE_SEPARATOR
+        + "└─────────────┴──────────────────────────────────────────────────┴──────────┘" + SystemUtils.LINE_SEPARATOR;
+    Assert.assertEquals(expected, WorkflowUtil.renderAvailableSteps(mapProcessingSteps));
+  }
+
+  /**
+   * Inner classes for tests of {@link WorkflowUtil#renderAvailableSteps(java.util.Map)}.
+   */
+  @ProcessingStep(id = "exec", description = "Executes shell commands such as shell or batch script execution.")
+  private static class TestExecHook extends ANOPProcessingStep {
+  }
+
+  @ProcessingStep(id = "httpRequest", description = "Send HTTP requests such as POST, PUT or GET as part of your processing logic.", requiresOnline = true)
+  private static class TestHttpRequestHook extends ANOPProcessingStep {
+  }
+
+  @ProcessingStep(id = "mvn", description = "Invoke a separate Maven build process during your processing logic.")
+  private class TestMavenHook extends ANOPProcessingStep {
+  }
+
+  private static abstract class ANOPProcessingStep implements CDIMojoProcessingStep {
+
+    @Override
+    public void execute(ExecutionContext context) throws MojoExecutionException, MojoFailureException {
+      // nothing to do
+    }
+
   }
 }

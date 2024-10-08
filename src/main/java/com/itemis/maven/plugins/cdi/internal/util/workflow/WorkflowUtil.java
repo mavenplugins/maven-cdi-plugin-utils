@@ -49,8 +49,8 @@ public class WorkflowUtil {
   /**
    * Parses a workflow from its descriptor representation.
    *
-   * @param is the input stream to read the workflow descriptor from. This stream will be closed after reading the
-   *          workflow descriptor.
+   * @param is       the input stream to read the workflow descriptor from. This stream will be closed after reading the
+   *                   workflow descriptor.
    * @param goalName the name of the goal this workflow is designed for.
    * @return the parsed processing workflow.
    */
@@ -287,8 +287,13 @@ public class WorkflowUtil {
     }
   }
 
-  public static boolean printAvailableSteps(Map<String, ProcessingStep> steps, Logger log)
-      throws MojoExecutionException {
+  public static void printAvailableSteps(Map<String, ProcessingStep> steps, Logger log) {
+    log.info(
+        "The following processing steps are available on classpath and can be configured as part of a custom workflow.");
+    System.out.println(renderAvailableSteps(steps));
+  }
+
+  public static String renderAvailableSteps(Map<String, ProcessingStep> steps) {
     V2_AsciiTable table = new V2_AsciiTable();
     table.addRule();
     ContentRow header = table.addRow("ID", "DESCRIPTION", "REQUIRES ONLINE");
@@ -309,10 +314,7 @@ public class WorkflowUtil {
     renderer.setWidth(new WidthLongestLine().add(10, 20).add(20, 50).add(10, 10));
     RenderedTable renderedTable = renderer.render(table);
 
-    log.info(
-        "The following processing steps are available on classpath and can be configured as part of a custom workflow.");
-    System.out.println(renderedTable);
-
-    return true;
+    return renderedTable.toString();
   }
+
 }
