@@ -52,11 +52,11 @@
     <version.asciitable>0.3.2</version.asciitable>
     <version.guava>33.3.1-jre</version.guava>
     <!-- SLF4J -->
-    <version.slf4j>1.7.36</version.slf4j>    
+    <version.slf4j>1.7.36</version.slf4j>
     <!-- CDI -->
     <version.weld-se>4.0.3.Final</version.weld-se>
     <!-- MAVEN -->
-    <version.maven>3.3.9</version.maven>
+    <version.maven>3.8.1</version.maven>
     <version.maven-plugin-plugin>3.13.1</version.maven-plugin-plugin>
     <!-- TEST -->
     <version.junit>4.13.2</version.junit>

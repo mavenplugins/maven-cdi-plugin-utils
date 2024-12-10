@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.junit.Assert;
@@ -228,18 +227,18 @@ public class WorkflowUtilTest {
     annotation = TestMavenHook.class.getAnnotation(ProcessingStep.class);
     mapProcessingSteps.put(annotation.id(), annotation);
     final String expected = "" // nl
-        + "┌─────────────┬──────────────────────────────────────────────────┬──────────┐" + SystemUtils.LINE_SEPARATOR
-        + "│     ID      │                   DESCRIPTION                    │ REQUIRES │" + SystemUtils.LINE_SEPARATOR
-        + "│             │                                                  │  ONLINE  │" + SystemUtils.LINE_SEPARATOR
-        + "╞═════════════╪══════════════════════════════════════════════════╪══════════╡" + SystemUtils.LINE_SEPARATOR
-        + "│ exec        │ Executes shell commands such as shell or batch   │   true   │" + SystemUtils.LINE_SEPARATOR
-        + "│             │ script execution.                                │          │" + SystemUtils.LINE_SEPARATOR
-        + "├─────────────┼──────────────────────────────────────────────────┼──────────┤" + SystemUtils.LINE_SEPARATOR
-        + "│ httpRequest │ Send HTTP requests such as POST, PUT or GET as   │   true   │" + SystemUtils.LINE_SEPARATOR
-        + "│             │ part of your processing logic.                   │          │" + SystemUtils.LINE_SEPARATOR
-        + "├─────────────┼──────────────────────────────────────────────────┼──────────┤" + SystemUtils.LINE_SEPARATOR
-        + "│ mvn         │ Invoke a separate Maven build process during     │   true   │" + SystemUtils.LINE_SEPARATOR
-        + "│             │ your processing logic.                           │          │" + SystemUtils.LINE_SEPARATOR
+        + "┌─────────────┬──────────────────────────────────────────────────┬──────────┐" + System.lineSeparator()
+        + "│     ID      │                   DESCRIPTION                    │ REQUIRES │" + System.lineSeparator()
+        + "│             │                                                  │  ONLINE  │" + System.lineSeparator()
+        + "╞═════════════╪══════════════════════════════════════════════════╪══════════╡" + System.lineSeparator()
+        + "│ exec        │ Executes shell commands such as shell or batch   │   true   │" + System.lineSeparator()
+        + "│             │ script execution.                                │          │" + System.lineSeparator()
+        + "├─────────────┼──────────────────────────────────────────────────┼──────────┤" + System.lineSeparator()
+        + "│ httpRequest │ Send HTTP requests such as POST, PUT or GET as   │   true   │" + System.lineSeparator()
+        + "│             │ part of your processing logic.                   │          │" + System.lineSeparator()
+        + "├─────────────┼──────────────────────────────────────────────────┼──────────┤" + System.lineSeparator()
+        + "│ mvn         │ Invoke a separate Maven build process during     │   true   │" + System.lineSeparator()
+        + "│             │ your processing logic.                           │          │" + System.lineSeparator()
         + "└─────────────┴──────────────────────────────────────────────────┴──────────┘";
     Assert.assertEquals(expected, WorkflowUtil.renderAvailableSteps(mapProcessingSteps));
   }
