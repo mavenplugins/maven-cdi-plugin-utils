@@ -75,6 +75,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - Update dependency to junit version `4.12` -> `4.13.2`
   - Update dependency to junit-dataprovider version `1.10.3` -> `1.13.1`
   - Update dependency to asciitable version `0.2.5` -> `0.3.2`
+  - Update dependency to slf4j version `1.7.21` -> `1.7.36`
 - No further functional change
 
 ### Updates
@@ -83,6 +84,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - Update dependency `junit:junit:4.12` -> `junit:junit:4.13.2`
   - Update dependency `com.tngtech.java:junit-dataprovider:1.10.3` -> `com.tngtech.java:junit-dataprovider:1.13.1`
   - Update dependency `de.vandermeer:asciitable:0.2.5` -> `de.vandermeer:asciitable:0.3.2`
+  - Update dependency `org.slf4j:slf4j-simple:1.7.21` -> `org.slf4j:slf4j-simple:1.7.36`
 
 - CDIUtil.java:
   - update usage of deprecated/removed guava API `Files.fileTreeTraverser().preOrderTraversal(folder)`

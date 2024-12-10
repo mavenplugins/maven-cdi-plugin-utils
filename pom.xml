@@ -52,7 +52,7 @@
     <version.asciitable>0.3.2</version.asciitable>
     <version.guava>33.3.1-jre</version.guava>
     <!-- SLF4J -->
-    <version.slf4j-simple>1.7.21</version.slf4j-simple>
+    <version.slf4j>1.7.36</version.slf4j>    
     <!-- CDI -->
     <version.weld-se>4.0.3.Final</version.weld-se>
     <!-- MAVEN -->
@@ -80,7 +80,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
-      <version>${version.slf4j-simple}</version>
+      <version>${version.slf4j}</version>
     </dependency>
 
     <!-- CDI DEPENDENCIES -->
