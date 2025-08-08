@@ -82,7 +82,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [4.0.1]
 <!-- !!! Align version in badge URLs as well !!! -->
-[![4.0.1 Badge](https://img.shields.io/nexus/r/io.github.mavenplugins/cdi-plugin-utils?server=https://s01.oss.sonatype.org&label=Maven%20Central&queryOpt=:v=4.0.1)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/4.0.1)
+[![4.0.1 Badge](https://img.shields.io/maven-central/v/io.github.mavenplugins/cdi-plugin-utils?label=Maven%20Central&filter=4.0.1)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/4.0.1)
 
 ### Summary
 - Remove vulnerability warnings due to guava dependency:
@@ -121,7 +121,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [4.0.0]
 <!-- !!! Align version in badge URLs as well !!! -->
-[![4.0.0 Badge](https://img.shields.io/nexus/r/io.github.mavenplugins/cdi-plugin-utils?server=https://s01.oss.sonatype.org&label=Maven%20Central&queryOpt=:v=4.0.0)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/4.0.0)
+[![4.0.0 Badge](https://img.shields.io/maven-central/v/io.github.mavenplugins/cdi-plugin-utils?label=Maven%20Central&filter=4.0.0)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/4.0.0)
 
 ### Summary
 - Work for Java 8, 11, 17, 21 by using CDI WELD 4.0.3.Final with Jakarta Inject API
@@ -154,7 +154,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [3.4.1]
 <!-- !!! Align version in badge URLs as well !!! -->
-[![3.4.1 Badge](https://img.shields.io/nexus/r/io.github.mavenplugins/cdi-plugin-utils?server=https://s01.oss.sonatype.org&label=Maven%20Central&queryOpt=:v=3.4.1)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/3.4.1)
+[![3.4.1 Badge](https://img.shields.io/maven-central/v/io.github.mavenplugins/cdi-plugin-utils?label=Maven%20Central&filter=3.4.1)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/3.4.1)
 
 ### Summary
 - Update requirements:
@@ -184,7 +184,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [3.4.0]
 <!-- !!! Align version in badge URLs as well !!! -->
-[![3.4.0 Badge](https://img.shields.io/nexus/r/io.github.mavenplugins/cdi-plugin-utils?server=https://s01.oss.sonatype.org&label=Maven%20Central&queryOpt=:v=3.4.0)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/3.4.0)
+[![3.4.0 Badge](https://img.shields.io/maven-central/v/io.github.mavenplugins/cdi-plugin-utils?label=Maven%20Central&filter=3.4.0)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/3.4.0)
 
 ### Summary
 - Initial release of this artifact with new groupId `io.github.mavenplugins`
