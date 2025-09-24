@@ -80,6 +80,58 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - TBD
 
 
+## [4.0.2]
+<!-- !!! Align version in badge URLs as well !!! -->
+[![4.0.2 Badge](https://img.shields.io/maven-central/v/io.github.mavenplugins/cdi-plugin-utils?label=Maven%20Central&filter=4.0.2)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/4.0.2)
+
+### Summary
+- Remove vulnerability warnings due to guava dependency:
+  - Update dependency to guava version `33.4.0-jre` -> `33.5.0-jre`
+- Simplify WorkFlow reading and fix unit testing - #22
+- No further functional change
+
+### 📢 Deprecated
+- `InputStream WorkflowUtil.getWorkflowDescriptor(String, PluginDescriptor, Optional, Logger)`
+  - replace by `List<String> WorkflowUtil.getTrimmedWorkflowLines(String, PluginDescriptor, Optional, Logger)`
+- `ProcessingWorkflow WorkflowUtil.parseWorkflow(InputStream, String)`<br>
+  - replace by `ProcessingWorkflow WorkflowUtil.parseWorkflow(List, String)`
+
+### 🔒 Security
+- Fix security warning on `GitHub Actions` of this project
+
+### 📦 Updates
+- pom.xml:
+  - Update dependency `com.google.guava:guava:33.4.0-jre` -> `com.google.guava:guava:33.5.0-jre`
+
+### 🚦 Tests
+  - fix test data resource names for `testValidate_error(String workflowName)`
+  - fix content of `invalid/try-finally_noFinallyBlock`
+
+
+### 🔧 Internal Changes
+- WorkflowUtil.java:
+  - deprecated method `InputStream WorkflowUtil.getWorkflowDescriptor(String, PluginDescriptor, Optional, Logger)`
+    - replace by `List<String> WorkflowUtil.getTrimmedWorkflowLines(String, PluginDescriptor, Optional, Logger)`
+  - deprecate method `ProcessingWorkflow WorkflowUtil.parseWorkflow(InputStream, String)`
+    - replace by `ProcessingWorkflow WorkflowUtil.parseWorkflow(List, String)`
+  - update code to make use of these replacing methods
+
+- WorkflowValidator.java:
+  - fix void `validateSyntactically(List<String> trimmedWorkflowLines)` unbalanced try-blocks / closing finally-blocks
+  - fix `boolean validateFinallyBlockOpening(String line)`
+  
+- AbstractCDIMojo.java:
+  - simplify method `ProcessingWorkflow getWorkflow()` making use of methods replacing deprecated ones
+
+- WorkflowUtilTest.java:
+  - update code to make use of methods replacing deprecated ones
+  - add `testParseWorkflow_WorkflowNotExisting()`
+
+- WorkflowValidatorTest.java:
+  - update code to make use of methods replacing deprecated ones
+  - fix test data resource names for `testValidate_error(String workflowName)`
+
+
 ## [4.0.1]
 <!-- !!! Align version in badge URLs as well !!! -->
 [![4.0.1 Badge](https://img.shields.io/maven-central/v/io.github.mavenplugins/cdi-plugin-utils?label=Maven%20Central&filter=4.0.1)](https://central.sonatype.com/artifact/io.github.mavenplugins/cdi-plugin-utils/4.0.1)
@@ -210,7 +262,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - This is just a dummy placeholder to make the parser of GHCICD/release-notes-from-changelog@v1 happy!
 -->
 
-[Unreleased]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v4.0.1..HEAD
+[Unreleased]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v4.0.2..HEAD
+[4.0.2]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v4.0.1..v4.0.2
 [4.0.1]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v4.0.0..v4.0.1
 [4.0.0]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.1..v4.0.0
 [3.4.1]: https://github.com/mavenplugins/maven-cdi-plugin-utils/compare/v3.4.0..v3.4.1
