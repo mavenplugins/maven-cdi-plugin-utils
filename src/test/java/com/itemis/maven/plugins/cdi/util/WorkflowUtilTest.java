@@ -1,6 +1,5 @@
 package com.itemis.maven.plugins.cdi.util;
 
-import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,8 +23,8 @@ import com.itemis.maven.plugins.cdi.internal.util.workflow.WorkflowUtil;
 public class WorkflowUtilTest {
 
   @Test
-  public void testParseWorkflow_Sequential() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("sequential"), "wf1");
+  public void testParseWorkflow_Sequential() throws MojoExecutionException {
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getTrimmedWorkflowLines("sequential"), "wf1");
 
     Assert.assertEquals("wf1", workflow.getGoal());
     for (WorkflowStep step : workflow.getProcessingSteps()) {
@@ -40,8 +39,8 @@ public class WorkflowUtilTest {
   }
 
   @Test
-  public void testParseWorkflow_Parallel() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("parallel"), "wf2");
+  public void testParseWorkflow_Parallel() throws MojoExecutionException {
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getTrimmedWorkflowLines("parallel"), "wf2");
 
     Assert.assertEquals("wf2", workflow.getGoal());
     // The first step is a parallel step
@@ -60,8 +59,8 @@ public class WorkflowUtilTest {
   }
 
   @Test
-  public void testParseWorkflow_Sequential_Qualifiers() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("sequential_qualifiers"), "wf3");
+  public void testParseWorkflow_Sequential_Qualifiers() throws MojoExecutionException {
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getTrimmedWorkflowLines("sequential_qualifiers"), "wf3");
 
     Assert.assertEquals("wf3", workflow.getGoal());
     for (WorkflowStep step : workflow.getProcessingSteps()) {
@@ -77,8 +76,8 @@ public class WorkflowUtilTest {
   }
 
   @Test
-  public void testParseWorkflow_Sequential_Data() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("sequential_data"), "wf4");
+  public void testParseWorkflow_Sequential_Data() throws MojoExecutionException {
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getTrimmedWorkflowLines("sequential_data"), "wf4");
 
     Assert.assertEquals("wf4", workflow.getGoal());
     for (WorkflowStep step : workflow.getProcessingSteps()) {
@@ -101,8 +100,8 @@ public class WorkflowUtilTest {
   }
 
   @Test
-  public void testParseWorkflow_Parallel_Data() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("parallel_data"), "wf5");
+  public void testParseWorkflow_Parallel_Data() throws MojoExecutionException {
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getTrimmedWorkflowLines("parallel_data"), "wf5");
 
     Assert.assertEquals("wf5", workflow.getGoal());
     // The first step is a parallel step
@@ -141,8 +140,8 @@ public class WorkflowUtilTest {
   }
 
   @Test
-  public void testParseWorkflow_TryFinally() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("try-finally"), "wf6");
+  public void testParseWorkflow_TryFinally() throws MojoExecutionException {
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getTrimmedWorkflowLines("try-finally"), "wf6");
 
     Assert.assertEquals("wf6", workflow.getGoal());
     List<WorkflowStep> trySteps = workflow.getProcessingSteps();
@@ -158,8 +157,8 @@ public class WorkflowUtilTest {
   }
 
   @Test
-  public void testParseWorkflow_TryFinally_Complex() {
-    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getWorkflowAsStream("try-finally_complex"), "wf7");
+  public void testParseWorkflow_TryFinally_Complex() throws MojoExecutionException {
+    ProcessingWorkflow workflow = WorkflowUtil.parseWorkflow(getTrimmedWorkflowLines("try-finally_complex"), "wf7");
 
     Assert.assertEquals("wf7", workflow.getGoal());
     List<WorkflowStep> trySteps = workflow.getProcessingSteps();
@@ -213,8 +212,13 @@ public class WorkflowUtilTest {
         fStep2.getDefaultRollbackData().isPresent());
   }
 
-  private InputStream getWorkflowAsStream(String name) {
-    return Thread.currentThread().getContextClassLoader().getResourceAsStream("workflows/" + name);
+  @Test(expected = MojoExecutionException.class)
+  public void testParseWorkflow_WorkflowNotExisting() throws MojoExecutionException {
+    WorkflowUtil.parseWorkflow(getTrimmedWorkflowLines("__not_existing__"), "wf8");
+  }
+
+  private List<String> getTrimmedWorkflowLines(String name) throws MojoExecutionException {
+    return WorkflowUtil.getTrimmedWorkflowLines(WorkflowUtil.getResourceStream("workflows/" + name));
   }
 
   @Test

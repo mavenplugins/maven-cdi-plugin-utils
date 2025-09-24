@@ -20,8 +20,6 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Closeables;
 import com.itemis.maven.plugins.cdi.ExecutionContext;
 import com.itemis.maven.plugins.cdi.annotations.ProcessingStep;
 import com.itemis.maven.plugins.cdi.internal.util.workflow.ParallelWorkflowStep.Builder;
@@ -50,83 +48,94 @@ public class WorkflowUtil {
   /**
    * Parses a workflow from its descriptor representation.
    *
-   * @param is       the input stream to read the workflow descriptor from. This stream will be closed after reading the
-   *                   workflow descriptor.
+   * @param trimmedWorkflowLines the lines read from the workflow and trimmed.
    * @param goalName the name of the goal this workflow is designed for.
    * @return the parsed processing workflow.
+   *
+   * @since 4.0.2
    */
   // TODO rework parser! -> too many decision branches!
-  public static ProcessingWorkflow parseWorkflow(InputStream is, String goalName) {
+  public static ProcessingWorkflow parseWorkflow(List<String> trimmedWorkflowLines, String goalName) {
     ProcessingWorkflow workflow = new ProcessingWorkflow(goalName);
 
-    BufferedReader br = null;
-    try {
-      Builder parallelStepBuilder = null;
-      SimpleWorkflowStep currentStep = null;
-      boolean isTryBlock = false;
-      boolean isFinallyBlock = false;
+    Builder parallelStepBuilder = null;
+    SimpleWorkflowStep currentStep = null;
+    boolean isTryBlock = false;
+    boolean isFinallyBlock = false;
 
-      br = new BufferedReader(new InputStreamReader(is));
-      String line;
-      while ((line = br.readLine()) != null) {
-        line = line.trim();
-        if (line.startsWith(WorkflowConstants.KW_COMMENT) || line.isEmpty()) {
-          continue;
-        }
+    for (String line : trimmedWorkflowLines) {
+      if (line.startsWith(WorkflowConstants.KW_COMMENT) || line.isEmpty()) {
+        continue;
+      }
 
-        if (line.startsWith(WorkflowConstants.KW_TRY)) {
-          isTryBlock = true;
+      if (line.startsWith(WorkflowConstants.KW_TRY)) {
+        isTryBlock = true;
+        isFinallyBlock = false;
+      } else if (line.startsWith(WorkflowConstants.KW_PARALLEL)) {
+        parallelStepBuilder = ParallelWorkflowStep.builder();
+      } else if (Objects.equal(WorkflowConstants.KW_BLOCK_CLOSE, line)) {
+        if (currentStep != null) {
+          currentStep = null;
+        } else if (isFinallyBlock) {
           isFinallyBlock = false;
-        } else if (line.startsWith(WorkflowConstants.KW_PARALLEL)) {
-          parallelStepBuilder = ParallelWorkflowStep.builder();
-        } else if (Objects.equal(WorkflowConstants.KW_BLOCK_CLOSE, line)) {
-          if (currentStep != null) {
-            currentStep = null;
-          } else if (isFinallyBlock) {
-            isFinallyBlock = false;
-          } else if (parallelStepBuilder != null) {
-            workflow.addProcessingStep(parallelStepBuilder.build());
+        } else if (parallelStepBuilder != null) {
+          workflow.addProcessingStep(parallelStepBuilder.build());
+        }
+      } else if (line.startsWith(WorkflowConstants.KW_BLOCK_CLOSE)) {
+        if (isTryBlock) {
+          isTryBlock = false;
+          String substring = line.substring(1).trim();
+          if (substring.startsWith(WorkflowConstants.KW_FINALLY)
+              && substring.endsWith(WorkflowConstants.KW_BLOCK_OPEN)) {
+            isFinallyBlock = true;
           }
-        } else if (line.startsWith(WorkflowConstants.KW_BLOCK_CLOSE)) {
-          if (isTryBlock) {
-            isTryBlock = false;
-            String substring = line.substring(1).trim();
-            if (substring.startsWith(WorkflowConstants.KW_FINALLY)
-                && substring.endsWith(WorkflowConstants.KW_BLOCK_OPEN)) {
-              isFinallyBlock = true;
+        }
+      } else {
+        if (currentStep == null) {
+          String id = parseId(line);
+          Optional<String> qualifier = parseQualifier(line);
+          SimpleWorkflowStep step = new SimpleWorkflowStep(id, qualifier);
+          if (line.endsWith(WorkflowConstants.KW_BLOCK_OPEN)) {
+            currentStep = step;
+          }
+
+          if (isFinallyBlock) {
+            workflow.addFinallyStep(step);
+          } else {
+            if (parallelStepBuilder == null) {
+              workflow.addProcessingStep(step);
+            } else {
+              parallelStepBuilder.addSteps(step);
             }
           }
         } else {
-          if (currentStep == null) {
-            String id = parseId(line);
-            Optional<String> qualifier = parseQualifier(line);
-            SimpleWorkflowStep step = new SimpleWorkflowStep(id, qualifier);
-            if (line.endsWith(WorkflowConstants.KW_BLOCK_OPEN)) {
-              currentStep = step;
-            }
-
-            if (isFinallyBlock) {
-              workflow.addFinallyStep(step);
-            } else {
-              if (parallelStepBuilder == null) {
-                workflow.addProcessingStep(step);
-              } else {
-                parallelStepBuilder.addSteps(step);
-              }
-            }
-          } else {
-            setDefaultExecutionData(currentStep, line);
-            setDefaultRollbackData(currentStep, line);
-          }
+          setDefaultExecutionData(currentStep, line);
+          setDefaultRollbackData(currentStep, line);
         }
       }
-    } catch (IOException e) {
-      throw new RuntimeException("Unable to read the workflow descriptor from the provided input stream.", e);
-    } finally {
-      Closeables.closeQuietly(br);
     }
 
     return workflow;
+  }
+
+  /**
+   * Parses a workflow from its descriptor representation.
+   *
+   * @param is the input stream to read the workflow descriptor from. This stream will be closed after reading the
+   *          workflow descriptor.
+   * @param goalName the name of the goal this workflow is designed for.
+   * @return the parsed processing workflow.
+   * @deprecated Use {@link #parseWorkflow(List, String)} instead.
+   */
+  @Deprecated
+  public static ProcessingWorkflow parseWorkflow(InputStream is, String goalName) {
+    List<String> trimmedWorkflowLines;
+    try {
+      trimmedWorkflowLines = getTrimmedWorkflowLines(is);
+    } catch (MojoExecutionException e) {
+      throw new RuntimeException("Unable to read the workflow descriptor from the provided input stream.", e);
+    }
+    return parseWorkflow(trimmedWorkflowLines, goalName);
   }
 
   private static String parseId(String line) {
@@ -230,7 +239,7 @@ public class WorkflowUtil {
     return builder.build();
   }
 
-  public static InputStream getWorkflowDescriptor(String goalName, PluginDescriptor pluginDescriptor,
+  private static InputStream getWorkflowInputStream(String goalName, PluginDescriptor pluginDescriptor,
       Optional<File> customWorkflowDescriptor, Logger log) throws MojoExecutionException {
     log.info("Constructing workflow for processing");
     String goalPrefix = pluginDescriptor.getGoalPrefix();
@@ -241,7 +250,7 @@ public class WorkflowUtil {
 
       if (customDescriptor.exists() && customDescriptor.isFile()) {
         try {
-          log.info("Workflow of goal '" + goalPrefix + ':' + goalName + "' will be overriden by file '"
+          log.info("Default workflow of goal '" + goalPrefix + ':' + goalName + "' will be overriden by file '"
               + customDescriptor.getAbsolutePath() + "'.");
           return new FileInputStream(customDescriptor);
         } catch (Exception e) {
@@ -254,7 +263,65 @@ public class WorkflowUtil {
     }
 
     log.info("Goal '" + goalPrefix + ':' + goalName + "' will use default workflow packaged with the plugin.");
-    return Thread.currentThread().getContextClassLoader().getResourceAsStream(DEFAULT_WORKFLOW_DIR + "/" + goalName);
+    return getResourceStream(DEFAULT_WORKFLOW_DIR + "/" + goalName);
+  }
+
+  /**
+   * @param resourcePath the path to the resource file
+   * @return {@link InputStream} to read the workflow from a resource file
+   * @throws MojoExecutionException if resource file does not exist
+   *
+   * @since 4.0.2
+   */
+  public static InputStream getResourceStream(String resourcePath) throws MojoExecutionException {
+    InputStream ret = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath);
+    if (ret == null) {
+      throw new MojoExecutionException("Resource for path '" + resourcePath + "' does not exist!");
+    }
+    return ret;
+  }
+
+  /**
+   * @param goalName the current goal being used
+   * @param pluginDescriptor the descriptor of the plugin calling
+   * @param customWorkflowDescriptor the workflow descriptor referring to a workflow file
+   * @param log the logger passed from the caller
+   * @return the {@link InputStream} for reading the workflow resource or file
+   * @throws MojoExecutionException in case of workflow file not existing
+   * @deprecated Use {@link #getTrimmedWorkflowLines(String, PluginDescriptor, Optional, Logger)} instead.
+   */
+  @Deprecated
+  public static InputStream getWorkflowDescriptor(String goalName, PluginDescriptor pluginDescriptor,
+      Optional<File> customWorkflowDescriptor, Logger log) throws MojoExecutionException {
+    return getWorkflowInputStream(goalName, pluginDescriptor, customWorkflowDescriptor, log);
+  }
+
+  public static List<String> getTrimmedWorkflowLines(InputStream is) throws MojoExecutionException {
+    List<String> ret = Lists.newArrayList();
+    try (final BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+      String line;
+      while ((line = br.readLine()) != null) {
+        ret.add(line.trim());
+      }
+    } catch (IOException e) {
+      throw new MojoExecutionException("Unable to read the workflow from the input stream provided.", e);
+    }
+    return ret;
+  }
+
+  /**
+   * @param goalName the current goal being used
+   * @param pluginDescriptor the descriptor of the plugin calling
+   * @param customWorkflowDescriptor the workflow descriptor referring to a workflow file
+   * @param log the logger passed from the caller
+   * @return list of workflow lines trimmed for white spaces
+   * @throws MojoExecutionException in case of workflow file not existing
+   *
+   * @since 4.0.2
+   */
+  public static List<String> getTrimmedWorkflowLines(String goalName, PluginDescriptor pluginDescriptor,
+      Optional<File> customWorkflowDescriptor, Logger log) throws MojoExecutionException {
+    return getTrimmedWorkflowLines(getWorkflowInputStream(goalName, pluginDescriptor, customWorkflowDescriptor, log));
   }
 
   public static void printWorkflow(String goalName, PluginDescriptor pluginDescriptor,
@@ -270,22 +337,19 @@ public class WorkflowUtil {
 
     log.info("Default workflow for '" + sb + "':");
 
-    InputStream workflowDescriptor = getWorkflowDescriptor(goalName, pluginDescriptor, customWorkflowDescriptor, log);
-    try {
-      int x = 77 - goalName.length();
-      int a = x / 2;
-      int b = x % 2 == 1 ? a + 1 : a;
-      StringBuilder separator = new StringBuilder();
-      separator.append(Strings.repeat("=", a)).append(' ').append(goalName).append(' ').append(Strings.repeat("=", b));
+    List<String> trimmedWorkflowLines = getTrimmedWorkflowLines(goalName, pluginDescriptor, customWorkflowDescriptor,
+        log);
+    int x = 77 - goalName.length();
+    int a = x / 2;
+    int b = x % 2 == 1 ? a + 1 : a;
+    StringBuilder separator = new StringBuilder();
+    separator.append(Strings.repeat("=", a)).append(' ').append(goalName).append(' ').append(Strings.repeat("=", b));
 
-      System.out.println(separator);
-      ByteStreams.copy(workflowDescriptor, System.out);
-      System.out.println(separator);
-    } catch (IOException e) {
-      throw new MojoExecutionException("A problem occurred during the serialization of the defualt workflow.", e);
-    } finally {
-      Closeables.closeQuietly(workflowDescriptor);
-    }
+    System.out.println(separator);
+    trimmedWorkflowLines.forEach(line -> {
+      System.out.println(line);
+    });
+    System.out.println(separator);
   }
 
   public static void printAvailableSteps(Map<String, ProcessingStep> steps, Logger log) {

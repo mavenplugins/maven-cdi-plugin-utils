@@ -1,7 +1,6 @@
 package com.itemis.maven.plugins.cdi;
 
 import java.io.File;
-import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collection;
@@ -216,18 +215,10 @@ public class AbstractCDIMojo extends AbstractMojo implements Extension {
 
   private ProcessingWorkflow getWorkflow() throws MojoExecutionException, MojoFailureException {
     if (this.workflow == null) {
-      InputStream wfDescriptor = WorkflowUtil.getWorkflowDescriptor(getGoalName(), getPluginDescriptor(),
+      List<String> trimmedWorkflowLines = WorkflowUtil.getTrimmedWorkflowLines(getGoalName(), getPluginDescriptor(),
           Optional.fromNullable(this.workflowDescriptor), createLogWrapper());
-
-      try {
-        WorkflowValidator.validateSyntactically(wfDescriptor);
-      } catch (RuntimeException e) {
-        throw new MojoFailureException(e.getMessage());
-      }
-
-      wfDescriptor = WorkflowUtil.getWorkflowDescriptor(getGoalName(), getPluginDescriptor(),
-          Optional.fromNullable(this.workflowDescriptor), createLogWrapper());
-      this.workflow = WorkflowUtil.parseWorkflow(wfDescriptor, getGoalName());
+      WorkflowValidator.validateSyntactically(trimmedWorkflowLines);
+      this.workflow = WorkflowUtil.parseWorkflow(trimmedWorkflowLines, getGoalName());
     }
     return this.workflow;
   }

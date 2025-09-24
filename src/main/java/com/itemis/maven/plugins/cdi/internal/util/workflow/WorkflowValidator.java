@@ -1,11 +1,6 @@
 package com.itemis.maven.plugins.cdi.internal.util.workflow;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-
-import com.google.common.io.Closeables;
+import java.util.List;
 
 /**
  * A utility class for workflow validation.
@@ -15,33 +10,35 @@ import com.google.common.io.Closeables;
  */
 public class WorkflowValidator {
 
-  public static void validateSyntactically(InputStream is) {
-    BufferedReader br = null;
-    try {
-      boolean isTryBlockOpen = false;
-      boolean isFinallyBlockOpen = true;
+  public static void validateSyntactically(List<String> trimmedWorkflowLines) {
+    boolean isTryBlockOpen = false;
+    boolean isFinallyBlockOpen = false;
+    int nrOfOpenTryBlocks = 0;
 
-      br = new BufferedReader(new InputStreamReader(is));
-      String line;
-      int lineNumber = 0;
-      while ((line = br.readLine()) != null) {
-        line = line.trim();
-        if (line.startsWith(WorkflowConstants.KW_COMMENT) || line.isEmpty()) {
-          continue;
-        }
-        // line number is only increased for non-comment lines
-        lineNumber++;
+    int lineNumber = 0;
+    for (String line : trimmedWorkflowLines) {
+      if (line.startsWith(WorkflowConstants.KW_COMMENT) || line.isEmpty()) {
+        continue;
+      }
+      // line number is only increased for non-comment lines
+      lineNumber++;
 
-        isTryBlockOpen = validateTryBlockOpening(line, lineNumber);
-        isFinallyBlockOpen = validateFinallyBlockOpening(line, isTryBlockOpen);
-        if (isFinallyBlockOpen) {
-          isTryBlockOpen = false;
+      isTryBlockOpen = validateTryBlockOpening(line, lineNumber);
+      if (isTryBlockOpen) {
+        nrOfOpenTryBlocks++;
+      }
+      isFinallyBlockOpen = validateFinallyBlockOpening(line);
+      if (isFinallyBlockOpen) {
+        if (nrOfOpenTryBlocks > 0) {
+          nrOfOpenTryBlocks--;
+        } else {
+          throw new RuntimeException(
+              "There is a finally-block opening without a try-block releated. Processed line was: '" + line + "'");
         }
       }
-    } catch (IOException e) {
-      throw new RuntimeException("Unable to read the workflow descriptor from the provided input stream.", e);
-    } finally {
-      Closeables.closeQuietly(br);
+    }
+    if (nrOfOpenTryBlocks > 0) {
+      throw new RuntimeException("There are try-blocks missing a closing finally-block.");
     }
   }
 
@@ -67,11 +64,11 @@ public class WorkflowValidator {
     return false;
   }
 
-  private static boolean validateFinallyBlockOpening(String line, boolean isTryBlockOpen) {
+  private static boolean validateFinallyBlockOpening(String line) {
     if (line.startsWith(WorkflowConstants.KW_BLOCK_CLOSE)) {
       String remainingContent = line.substring(1).trim();
-      if (line.startsWith(WorkflowConstants.KW_FINALLY)) {
-        remainingContent = line.substring(WorkflowConstants.KW_FINALLY.length()).trim();
+      if (remainingContent.startsWith(WorkflowConstants.KW_FINALLY)) {
+        remainingContent = remainingContent.substring(WorkflowConstants.KW_FINALLY.length()).trim();
         if (!remainingContent.equals(WorkflowConstants.KW_BLOCK_OPEN)) {
           throw new RuntimeException("The finally block opening must end with the block opening character '"
               + WorkflowConstants.KW_BLOCK_OPEN + "'. Processed line was: '" + line + "'");
