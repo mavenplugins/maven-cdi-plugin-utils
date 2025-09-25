@@ -88,7 +88,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Remove vulnerability warnings due to guava dependency:
   - Update dependency to guava version `33.4.0-jre` -> `33.5.0-jre`
 - Simplify WorkFlow reading and fix unit testing - #22
-- No further functional change
+- Fix workflow parsing:
+  - add missing reset of `parallelStepBuilder` after parallel block closing
+  - raise `RuntimeException` if there is a parallel-block within a finally-block
 
 ### 📢 Deprecated
 - `InputStream WorkflowUtil.getWorkflowDescriptor(String, PluginDescriptor, Optional, Logger)`
@@ -104,9 +106,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - Update dependency `com.google.guava:guava:33.4.0-jre` -> `com.google.guava:guava:33.5.0-jre`
 
 ### 🚦 Tests
-  - fix test data resource names for `testValidate_error(String workflowName)`
-  - fix content of `invalid/try-finally_noFinallyBlock`
-
+- fix test data resource names for `testValidate_error(String workflowName)`
+- fix content of `invalid/try-finally_noFinallyBlock`
 
 ### 🔧 Internal Changes
 - WorkflowUtil.java:
@@ -115,6 +116,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - deprecate method `ProcessingWorkflow WorkflowUtil.parseWorkflow(InputStream, String)`
     - replace by `ProcessingWorkflow WorkflowUtil.parseWorkflow(List, String)`
   - update code to make use of these replacing methods
+  - fix parseWorkflow(...):
+    - add missing reset of `parallelStepBuilder` after parallel block closing
+    - raise `RuntimeException` if there is a parallel-block within a finally-block
 
 - WorkflowValidator.java:
   - fix void `validateSyntactically(List<String> trimmedWorkflowLines)` unbalanced try-blocks / closing finally-blocks

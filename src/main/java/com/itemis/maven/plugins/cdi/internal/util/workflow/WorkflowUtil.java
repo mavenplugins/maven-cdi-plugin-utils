@@ -72,14 +72,19 @@ public class WorkflowUtil {
         isTryBlock = true;
         isFinallyBlock = false;
       } else if (line.startsWith(WorkflowConstants.KW_PARALLEL)) {
+        if (isFinallyBlock) {
+          throw new RuntimeException(
+              "Parallel block is not supported within finally-block. Processed line was: '" + line + "'");
+        }
         parallelStepBuilder = ParallelWorkflowStep.builder();
       } else if (Objects.equal(WorkflowConstants.KW_BLOCK_CLOSE, line)) {
         if (currentStep != null) {
           currentStep = null;
-        } else if (isFinallyBlock) {
-          isFinallyBlock = false;
         } else if (parallelStepBuilder != null) {
           workflow.addProcessingStep(parallelStepBuilder.build());
+          parallelStepBuilder = null;
+        } else if (isFinallyBlock) {
+          isFinallyBlock = false;
         }
       } else if (line.startsWith(WorkflowConstants.KW_BLOCK_CLOSE)) {
         if (isTryBlock) {
@@ -250,7 +255,7 @@ public class WorkflowUtil {
 
       if (customDescriptor.exists() && customDescriptor.isFile()) {
         try {
-          log.info("Default workflow of goal '" + goalPrefix + ':' + goalName + "' will be overriden by file '"
+          log.info("Default workflow of goal '" + goalPrefix + ':' + goalName + "' will be overridden by file '"
               + customDescriptor.getAbsolutePath() + "'.");
           return new FileInputStream(customDescriptor);
         } catch (Exception e) {
