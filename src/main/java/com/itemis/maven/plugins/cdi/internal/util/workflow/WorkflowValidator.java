@@ -33,7 +33,7 @@ public class WorkflowValidator {
           nrOfOpenTryBlocks--;
         } else {
           throw new RuntimeException(
-              "There is a finally-block opening without a try-block releated. Processed line was: '" + line + "'");
+              "There is a finally-block opening without a related try-block. Processed line was: '" + line + "'");
         }
       }
     }
